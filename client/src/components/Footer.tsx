@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 const footerLinks = {
   services: [
@@ -25,14 +27,35 @@ export default function Footer() {
   const [email, setEmail] = useState("");
   const { toast } = useToast();
 
+  const newsletterMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest("POST", "/api/newsletter", { email });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subscribed!",
+        description: "You'll receive fabrication tips and inspiration.",
+      });
+      setEmail("");
+    },
+    onError: (error: any) => {
+      const message = error?.message?.includes("already subscribed") 
+        ? "This email is already subscribed." 
+        : "Failed to subscribe. Please try again.";
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Newsletter signup:", email);
-    toast({
-      title: "Subscribed!",
-      description: "You'll receive fabrication tips and inspiration.",
-    });
-    setEmail("");
+    if (email) {
+      newsletterMutation.mutate(email);
+    }
   };
 
   return (
@@ -117,8 +140,14 @@ export default function Footer() {
                 required
                 className="flex-1"
                 data-testid="input-newsletter"
+                disabled={newsletterMutation.isPending}
               />
-              <Button type="submit" size="icon" data-testid="button-newsletter">
+              <Button 
+                type="submit" 
+                size="icon" 
+                data-testid="button-newsletter"
+                disabled={newsletterMutation.isPending}
+              >
                 <Mail className="h-4 w-4" />
               </Button>
             </form>

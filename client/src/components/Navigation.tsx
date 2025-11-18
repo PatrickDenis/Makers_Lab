@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { Link } from "wouter";
 
 const navLinks = [
   { href: "#services", label: "Services" },
@@ -35,16 +34,15 @@ export default function Navigation() {
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/">
-            <a 
-              className={`text-2xl font-bold transition-colors ${
-                isScrolled ? "text-foreground" : "text-white"
-              }`}
-              data-testid="link-logo"
-            >
-              Maker's Lab
-            </a>
-          </Link>
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className={`text-2xl font-bold transition-colors ${
+              isScrolled ? "text-foreground" : "text-white"
+            }`}
+            data-testid="link-logo"
+          >
+            Maker's Lab
+          </button>
 
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (

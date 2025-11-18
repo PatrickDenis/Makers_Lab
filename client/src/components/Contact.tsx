@@ -8,13 +8,13 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ContactFormData {
   name: string;
   email: string;
   phone: string;
-  budget: string;
-  timeline: string;
   description: string;
 }
 
@@ -24,15 +24,35 @@ export default function Contact() {
   const [timeline, setTimeline] = useState("");
   const { toast } = useToast();
 
+  const contactMutation = useMutation({
+    mutationFn: async (data: ContactFormData & { budget: string; timeline: string }) => {
+      const res = await apiRequest("POST", "/api/contact", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Quote request received!",
+        description: "We'll get back to you within 24 hours.",
+      });
+      reset();
+      setBudget("");
+      setTimeline("");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit quote request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: ContactFormData) => {
-    console.log("Form submitted:", { ...data, budget, timeline });
-    toast({
-      title: "Quote request received!",
-      description: "We'll get back to you within 24 hours.",
+    contactMutation.mutate({
+      ...data,
+      budget,
+      timeline,
     });
-    reset();
-    setBudget("");
-    setTimeline("");
   };
 
   return (
@@ -56,6 +76,7 @@ export default function Contact() {
                   placeholder="John Doe"
                   className="mt-2"
                   data-testid="input-name"
+                  disabled={contactMutation.isPending}
                 />
                 {errors.name && <p className="text-sm text-destructive mt-1">Name is required</p>}
               </div>
@@ -69,6 +90,7 @@ export default function Contact() {
                   placeholder="john@example.com"
                   className="mt-2"
                   data-testid="input-email"
+                  disabled={contactMutation.isPending}
                 />
                 {errors.email && <p className="text-sm text-destructive mt-1">Email is required</p>}
               </div>
@@ -81,12 +103,13 @@ export default function Contact() {
                   placeholder="(555) 123-4567"
                   className="mt-2"
                   data-testid="input-phone"
+                  disabled={contactMutation.isPending}
                 />
               </div>
 
               <div>
                 <Label htmlFor="budget">Budget Range</Label>
-                <Select value={budget} onValueChange={setBudget}>
+                <Select value={budget} onValueChange={setBudget} disabled={contactMutation.isPending}>
                   <SelectTrigger className="mt-2" data-testid="select-budget">
                     <SelectValue placeholder="Select budget range" />
                   </SelectTrigger>
@@ -101,7 +124,7 @@ export default function Contact() {
 
               <div>
                 <Label htmlFor="timeline">Timeline</Label>
-                <Select value={timeline} onValueChange={setTimeline}>
+                <Select value={timeline} onValueChange={setTimeline} disabled={contactMutation.isPending}>
                   <SelectTrigger className="mt-2" data-testid="select-timeline">
                     <SelectValue placeholder="Select timeline" />
                   </SelectTrigger>
@@ -122,12 +145,19 @@ export default function Contact() {
                   placeholder="Tell us about your project requirements..."
                   className="mt-2 min-h-32"
                   data-testid="textarea-description"
+                  disabled={contactMutation.isPending}
                 />
                 {errors.description && <p className="text-sm text-destructive mt-1">Description is required</p>}
               </div>
 
-              <Button type="submit" size="lg" className="w-full" data-testid="button-submit-quote">
-                Request Quote
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="w-full" 
+                data-testid="button-submit-quote"
+                disabled={contactMutation.isPending}
+              >
+                {contactMutation.isPending ? "Submitting..." : "Request Quote"}
               </Button>
             </form>
           </Card>
