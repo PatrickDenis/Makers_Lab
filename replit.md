@@ -1,12 +1,12 @@
 # Maker's Lab - Fabrication Shop Website
 
-A modern, professional website for a precision fabrication shop showcasing services, portfolio, and accepting quote requests.
+A modern, professional website for a precision fabrication shop showcasing services, portfolio, and accepting quote requests. Now with a complete admin dashboard for content management.
 
 ## Project Overview
 
 **Built:** November 2024  
 **Stack:** Fullstack JavaScript (React + Express + TypeScript)  
-**Status:** Fully functional MVP with working contact forms and newsletter signup
+**Status:** Production-ready with admin dashboard and PostgreSQL database
 
 ## Features
 
@@ -21,7 +21,11 @@ A modern, professional website for a precision fabrication shop showcasing servi
 - ✅ Newsletter signup in footer with duplicate email prevention
 - ✅ Mobile-responsive navigation with hamburger menu
 - ✅ Professional design with consistent spacing and typography
-- ✅ All form data persists in-memory storage
+- ✅ **PostgreSQL database with persistent storage**
+- ✅ **Admin dashboard accessible from footer link**
+- ✅ **Services CRUD operations (create, read, update, delete)**
+- ✅ **Secure admin authentication with password protection**
+- ✅ **PostgreSQL-backed session management**
 - ✅ Toast notifications for user feedback
 - ✅ Loading states during form submissions
 
@@ -34,6 +38,17 @@ A modern, professional website for a precision fabrication shop showcasing servi
 **Newsletter:**
 - `POST /api/newsletter` - Subscribe to newsletter
 - `GET /api/newsletter` - Retrieve all newsletter signups
+
+**Admin Authentication:**
+- `POST /api/admin/login` - Admin login (password-based)
+- `POST /api/admin/logout` - Admin logout
+- `GET /api/admin/check` - Check admin session status
+
+**Services Management (Admin Protected):**
+- `GET /api/services` - Get all services
+- `POST /api/services` - Create new service (admin only)
+- `PATCH /api/services/:id` - Update service (admin only)
+- `DELETE /api/services/:id` - Delete service (admin only)
 
 ## Technology Stack
 
@@ -48,9 +63,11 @@ A modern, professional website for a precision fabrication shop showcasing servi
 
 ### Backend
 - Express.js server
-- In-memory storage (MemStorage)
+- PostgreSQL database with Drizzle ORM
+- PostgreSQL-backed sessions using connect-pg-simple
 - Zod schema validation
 - RESTful API architecture
+- Secure session management with httpOnly cookies
 
 ### Build Tools
 - Vite for development and building
@@ -74,13 +91,18 @@ A modern, professional website for a precision fabrication shop showcasing servi
 │   │   │   ├── Footer.tsx
 │   │   │   └── ui/        # Shadcn UI primitives
 │   │   ├── pages/         # Page components
+│   │   │   ├── Admin.tsx          # Admin login page
+│   │   │   ├── AdminDashboard.tsx # Admin content management
+│   │   │   └── Home.tsx           # Main landing page
 │   │   └── lib/           # Utilities
 ├── server/                 # Backend Express server
-│   ├── index.ts
+│   ├── index.ts           # Express app setup with sessions
 │   ├── routes.ts          # API route handlers
-│   └── storage.ts         # In-memory data storage
+│   ├── storage.ts         # Database storage interface
+│   ├── db.ts             # PostgreSQL connection & Drizzle setup
+│   └── seed.ts           # Database seed data
 ├── shared/                 # Shared types and schemas
-│   └── schema.ts
+│   └── schema.ts          # Drizzle schema definitions
 ├── attached_assets/        # Generated images
 │   └── generated_images/
 ├── design_guidelines.md    # Design system documentation
@@ -107,16 +129,27 @@ The application runs on `http://localhost:5000`
 
 ## Data Storage
 
-**Current:** In-memory storage (data is lost on server restart)
+**Current:** PostgreSQL database with Drizzle ORM (production-ready)
 
-Contact submissions and newsletter signups are stored in memory using the MemStorage class. This is suitable for prototyping but should be replaced with a persistent database (PostgreSQL) for production use.
+All data is stored in a PostgreSQL database with persistent storage. Sessions are also stored in PostgreSQL using connect-pg-simple.
 
-### Storage Schema
+### Database Schema
+
+**Services:**
+```typescript
+{
+  id: number (auto-increment);
+  title: string;
+  description: string;
+  icon: string;
+  createdAt: Date;
+}
+```
 
 **Contact Submissions:**
 ```typescript
 {
-  id: string;
+  id: string (UUID);
   name: string;
   email: string;
   phone?: string | null;
@@ -130,19 +163,64 @@ Contact submissions and newsletter signups are stored in memory using the MemSto
 **Newsletter Signups:**
 ```typescript
 {
-  id: string;
+  id: string (UUID);
   email: string;
   createdAt: Date;
 }
 ```
 
+**Sessions (managed by connect-pg-simple):**
+```typescript
+{
+  sid: string;
+  sess: json;
+  expire: timestamp;
+}
+```
+
+## Admin Dashboard
+
+The admin dashboard is accessible via the "Admin" link in the footer. Admin access is protected by password authentication.
+
+### Admin Features
+- ✅ Password-based authentication
+- ✅ Secure session management (PostgreSQL-backed)
+- ✅ Services management (add, edit, delete)
+- ✅ Real-time updates to the homepage
+- ✅ Form validation with error handling
+- ✅ Loading states for all operations
+
+### Admin Access
+1. Click "Admin" link in the footer
+2. Enter admin password
+3. Manage services from the dashboard
+4. Changes are immediately reflected on the homepage
+
+### Security Implementation
+- **Required Environment Variables:** SESSION_SECRET and ADMIN_PASSWORD must be set
+- **Session Management:** PostgreSQL-backed sessions with connect-pg-simple
+- **Secure Cookies:** httpOnly, sameSite: 'lax', secure in production
+- **Session Lifecycle:** Regeneration on login, destruction on logout
+- **Route Protection:** All admin routes check session authentication
+- **Input Validation:** Zod schemas validate all admin inputs
+
+## Environment Variables
+
+**Required for security (application will not start without these):**
+- `SESSION_SECRET` - Secret key for session encryption
+- `ADMIN_PASSWORD` - Password for admin dashboard access
+
+**Automatically provided (database connection):**
+- `DATABASE_URL` - PostgreSQL connection string
+- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
+
 ## Future Enhancements
 
 ### Immediate Next Steps
-1. Add PostgreSQL database for persistent storage
-2. Implement email notifications for new quote requests
-3. Create admin dashboard to view/manage submissions
-4. Add image upload for project specifications
+1. Implement email notifications for new quote requests
+2. Add admin view for contact submissions and newsletter signups
+3. Add image upload for project specifications
+4. Extend admin dashboard to manage Portfolio, Equipment, and Testimonials
 
 ### Long-term Features
 - User authentication for client portal
@@ -157,9 +235,27 @@ Contact submissions and newsletter signups are stored in memory using the MemSto
 The application has been tested end-to-end with Playwright including:
 - Contact form submission and validation
 - Newsletter signup with duplicate prevention
-- API endpoint responses
-- Toast notifications
+- Admin authentication and session management
+- Services CRUD operations through admin dashboard
+- API endpoint responses and error handling
+- Toast notifications for user feedback
 - Form clearing after submission
+- Database persistence and data integrity
+
+## Production Deployment Notes
+
+**Before deploying to production:**
+1. ✅ Ensure SESSION_SECRET environment variable is set (required)
+2. ✅ Ensure ADMIN_PASSWORD environment variable is set (required)
+3. ⚠️ Monitor session table growth in PostgreSQL
+4. ⚠️ Consider adding logging/alerting for authentication failures
+5. ⚠️ Rotate SESSION_SECRET and ADMIN_PASSWORD periodically
+6. ⚠️ Review and configure cookie.secure based on HTTPS availability
+
+**Database Management:**
+- Use `npm run db:push` to sync schema changes to database
+- Sessions are automatically cleaned up by connect-pg-simple based on TTL
+- Initial services data is seeded via `server/seed.ts`
 
 ## Notes
 
@@ -167,7 +263,9 @@ The application has been tested end-to-end with Playwright including:
 - Contact information (phone, email, address) are placeholders
 - Social media links are placeholder anchors
 - The site is optimized for SEO with proper meta tags
+- Admin dashboard uses same design system as main site
+- Default admin password: "admin123" (set via ADMIN_PASSWORD environment variable)
 
 ## Contact
 
-For questions or support, refer to the contact form on the live site or check the API endpoints to retrieve submissions.
+For questions or support, refer to the contact form on the live site or access the admin dashboard to view submissions.
