@@ -72,3 +72,93 @@ export const updateServiceSchema = insertServiceSchema.partial();
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type UpdateService = z.infer<typeof updateServiceSchema>;
 export type Service = typeof services.$inferSelect;
+
+export const projects = pgTable("projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
+  imageUrl: text("image_url").notNull(),
+  order: text("order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateProjectSchema = insertProjectSchema.partial();
+
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type UpdateProject = z.infer<typeof updateProjectSchema>;
+export type Project = typeof projects.$inferSelect;
+
+export const equipment = pgTable("equipment", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  label: text("label").notNull(),
+  spec: text("spec").notNull(),
+  order: text("order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertEquipmentSchema = createInsertSchema(equipment).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateEquipmentSchema = insertEquipmentSchema.partial();
+
+export type InsertEquipment = z.infer<typeof insertEquipmentSchema>;
+export type UpdateEquipment = z.infer<typeof updateEquipmentSchema>;
+export type Equipment = typeof equipment.$inferSelect;
+
+export const processSteps = pgTable("process_steps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  icon: text("icon").notNull(),
+  order: text("order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProcessStepSchema = createInsertSchema(processSteps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateProcessStepSchema = insertProcessStepSchema.partial();
+
+export type InsertProcessStep = z.infer<typeof insertProcessStepSchema>;
+export type UpdateProcessStep = z.infer<typeof updateProcessStepSchema>;
+export type ProcessStep = typeof processSteps.$inferSelect;
+
+export const testimonials = pgTable("testimonials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  quote: text("quote").notNull(),
+  author: text("author").notNull(),
+  company: text("company").notNull(),
+  project: text("project").notNull(),
+  order: text("order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateTestimonialSchema = insertTestimonialSchema.partial();
+
+export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
+export type UpdateTestimonial = z.infer<typeof updateTestimonialSchema>;
+export type Testimonial = typeof testimonials.$inferSelect;

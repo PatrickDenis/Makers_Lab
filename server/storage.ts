@@ -8,10 +8,26 @@ import {
   type Service,
   type InsertService,
   type UpdateService,
+  type Project,
+  type InsertProject,
+  type UpdateProject,
+  type Equipment,
+  type InsertEquipment,
+  type UpdateEquipment,
+  type ProcessStep,
+  type InsertProcessStep,
+  type UpdateProcessStep,
+  type Testimonial,
+  type InsertTestimonial,
+  type UpdateTestimonial,
   users,
   contactSubmissions,
   newsletterSignups,
-  services
+  services,
+  projects,
+  equipment,
+  processSteps,
+  testimonials
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -32,6 +48,30 @@ export interface IStorage {
   createService(service: InsertService): Promise<Service>;
   updateService(id: string, service: UpdateService): Promise<Service | undefined>;
   deleteService(id: string): Promise<void>;
+
+  getAllProjects(): Promise<Project[]>;
+  getProject(id: string): Promise<Project | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: string, project: UpdateProject): Promise<Project | undefined>;
+  deleteProject(id: string): Promise<void>;
+
+  getAllEquipment(): Promise<Equipment[]>;
+  getEquipment(id: string): Promise<Equipment | undefined>;
+  createEquipment(equipment: InsertEquipment): Promise<Equipment>;
+  updateEquipment(id: string, equipment: UpdateEquipment): Promise<Equipment | undefined>;
+  deleteEquipment(id: string): Promise<void>;
+
+  getAllProcessSteps(): Promise<ProcessStep[]>;
+  getProcessStep(id: string): Promise<ProcessStep | undefined>;
+  createProcessStep(step: InsertProcessStep): Promise<ProcessStep>;
+  updateProcessStep(id: string, step: UpdateProcessStep): Promise<ProcessStep | undefined>;
+  deleteProcessStep(id: string): Promise<void>;
+
+  getAllTestimonials(): Promise<Testimonial[]>;
+  getTestimonial(id: string): Promise<Testimonial | undefined>;
+  createTestimonial(testimonial: InsertTestimonial): Promise<Testimonial>;
+  updateTestimonial(id: string, testimonial: UpdateTestimonial): Promise<Testimonial | undefined>;
+  deleteTestimonial(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -121,6 +161,138 @@ export class DatabaseStorage implements IStorage {
 
   async deleteService(id: string): Promise<void> {
     await db.delete(services).where(eq(services.id, id));
+  }
+
+  async getAllProjects(): Promise<Project[]> {
+    return await db
+      .select()
+      .from(projects)
+      .orderBy(projects.order);
+  }
+
+  async getProject(id: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project || undefined;
+  }
+
+  async createProject(insertProject: InsertProject): Promise<Project> {
+    const [project] = await db
+      .insert(projects)
+      .values(insertProject)
+      .returning();
+    return project;
+  }
+
+  async updateProject(id: string, updateProject: UpdateProject): Promise<Project | undefined> {
+    const [project] = await db
+      .update(projects)
+      .set({ ...updateProject, updatedAt: new Date() })
+      .where(eq(projects.id, id))
+      .returning();
+    return project || undefined;
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  async getAllEquipment(): Promise<Equipment[]> {
+    return await db
+      .select()
+      .from(equipment)
+      .orderBy(equipment.order);
+  }
+
+  async getEquipment(id: string): Promise<Equipment | undefined> {
+    const [item] = await db.select().from(equipment).where(eq(equipment.id, id));
+    return item || undefined;
+  }
+
+  async createEquipment(insertEquipment: InsertEquipment): Promise<Equipment> {
+    const [item] = await db
+      .insert(equipment)
+      .values(insertEquipment)
+      .returning();
+    return item;
+  }
+
+  async updateEquipment(id: string, updateEquipment: UpdateEquipment): Promise<Equipment | undefined> {
+    const [item] = await db
+      .update(equipment)
+      .set({ ...updateEquipment, updatedAt: new Date() })
+      .where(eq(equipment.id, id))
+      .returning();
+    return item || undefined;
+  }
+
+  async deleteEquipment(id: string): Promise<void> {
+    await db.delete(equipment).where(eq(equipment.id, id));
+  }
+
+  async getAllProcessSteps(): Promise<ProcessStep[]> {
+    return await db
+      .select()
+      .from(processSteps)
+      .orderBy(processSteps.order);
+  }
+
+  async getProcessStep(id: string): Promise<ProcessStep | undefined> {
+    const [step] = await db.select().from(processSteps).where(eq(processSteps.id, id));
+    return step || undefined;
+  }
+
+  async createProcessStep(insertProcessStep: InsertProcessStep): Promise<ProcessStep> {
+    const [step] = await db
+      .insert(processSteps)
+      .values(insertProcessStep)
+      .returning();
+    return step;
+  }
+
+  async updateProcessStep(id: string, updateProcessStep: UpdateProcessStep): Promise<ProcessStep | undefined> {
+    const [step] = await db
+      .update(processSteps)
+      .set({ ...updateProcessStep, updatedAt: new Date() })
+      .where(eq(processSteps.id, id))
+      .returning();
+    return step || undefined;
+  }
+
+  async deleteProcessStep(id: string): Promise<void> {
+    await db.delete(processSteps).where(eq(processSteps.id, id));
+  }
+
+  async getAllTestimonials(): Promise<Testimonial[]> {
+    return await db
+      .select()
+      .from(testimonials)
+      .orderBy(testimonials.order);
+  }
+
+  async getTestimonial(id: string): Promise<Testimonial | undefined> {
+    const [testimonial] = await db.select().from(testimonials).where(eq(testimonials.id, id));
+    return testimonial || undefined;
+  }
+
+  async createTestimonial(insertTestimonial: InsertTestimonial): Promise<Testimonial> {
+    const [testimonial] = await db
+      .insert(testimonials)
+      .values(insertTestimonial)
+      .returning();
+    return testimonial;
+  }
+
+  async updateTestimonial(id: string, updateTestimonial: UpdateTestimonial): Promise<Testimonial | undefined> {
+    const [testimonial] = await db
+      .update(testimonials)
+      .set({ ...updateTestimonial, updatedAt: new Date() })
+      .where(eq(testimonials.id, id))
+      .returning();
+    return testimonial || undefined;
+  }
+
+  async deleteTestimonial(id: string): Promise<void> {
+    await db.delete(testimonials).where(eq(testimonials.id, id));
   }
 }
 
