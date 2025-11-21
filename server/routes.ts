@@ -1,7 +1,20 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSubmissionSchema, insertNewsletterSignupSchema, insertServiceSchema, updateServiceSchema } from "@shared/schema";
+import { 
+  insertContactSubmissionSchema, 
+  insertNewsletterSignupSchema, 
+  insertServiceSchema, 
+  updateServiceSchema,
+  insertProjectSchema,
+  updateProjectSchema,
+  insertEquipmentSchema,
+  updateEquipmentSchema,
+  insertProcessStepSchema,
+  updateProcessStepSchema,
+  insertTestimonialSchema,
+  updateTestimonialSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 if (!process.env.ADMIN_PASSWORD) {
@@ -180,6 +193,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting service:", error);
       res.status(500).json({ success: false, message: "Failed to delete service" });
+    }
+  });
+
+  app.get("/api/projects", async (req, res) => {
+    try {
+      const allProjects = await storage.getAllProjects();
+      res.json({ success: true, projects: allProjects });
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch projects" });
+    }
+  });
+
+  app.post("/api/projects", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertProjectSchema.parse(req.body);
+      const project = await storage.createProject(validatedData);
+      res.json({ success: true, project });
+    } catch (error) {
+      console.error("Error creating project:", error);
+      res.status(400).json({ success: false, message: "Failed to create project" });
+    }
+  });
+
+  app.put("/api/projects/:id", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = updateProjectSchema.parse(req.body);
+      const project = await storage.updateProject(req.params.id, validatedData);
+      if (!project) {
+        return res.status(404).json({ success: false, message: "Project not found" });
+      }
+      res.json({ success: true, project });
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(400).json({ success: false, message: "Failed to update project" });
+    }
+  });
+
+  app.delete("/api/projects/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteProject(req.params.id);
+      res.json({ success: true, message: "Project deleted" });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      res.status(500).json({ success: false, message: "Failed to delete project" });
+    }
+  });
+
+  app.get("/api/equipment", async (req, res) => {
+    try {
+      const allEquipment = await storage.getAllEquipment();
+      res.json({ success: true, equipment: allEquipment });
+    } catch (error) {
+      console.error("Error fetching equipment:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch equipment" });
+    }
+  });
+
+  app.post("/api/equipment", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertEquipmentSchema.parse(req.body);
+      const equipment = await storage.createEquipment(validatedData);
+      res.json({ success: true, equipment });
+    } catch (error) {
+      console.error("Error creating equipment:", error);
+      res.status(400).json({ success: false, message: "Failed to create equipment" });
+    }
+  });
+
+  app.put("/api/equipment/:id", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = updateEquipmentSchema.parse(req.body);
+      const equipment = await storage.updateEquipment(req.params.id, validatedData);
+      if (!equipment) {
+        return res.status(404).json({ success: false, message: "Equipment not found" });
+      }
+      res.json({ success: true, equipment });
+    } catch (error) {
+      console.error("Error updating equipment:", error);
+      res.status(400).json({ success: false, message: "Failed to update equipment" });
+    }
+  });
+
+  app.delete("/api/equipment/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteEquipment(req.params.id);
+      res.json({ success: true, message: "Equipment deleted" });
+    } catch (error) {
+      console.error("Error deleting equipment:", error);
+      res.status(500).json({ success: false, message: "Failed to delete equipment" });
+    }
+  });
+
+  app.get("/api/process-steps", async (req, res) => {
+    try {
+      const allSteps = await storage.getAllProcessSteps();
+      res.json({ success: true, steps: allSteps });
+    } catch (error) {
+      console.error("Error fetching process steps:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch process steps" });
+    }
+  });
+
+  app.post("/api/process-steps", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertProcessStepSchema.parse(req.body);
+      const step = await storage.createProcessStep(validatedData);
+      res.json({ success: true, step });
+    } catch (error) {
+      console.error("Error creating process step:", error);
+      res.status(400).json({ success: false, message: "Failed to create process step" });
+    }
+  });
+
+  app.put("/api/process-steps/:id", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = updateProcessStepSchema.parse(req.body);
+      const step = await storage.updateProcessStep(req.params.id, validatedData);
+      if (!step) {
+        return res.status(404).json({ success: false, message: "Process step not found" });
+      }
+      res.json({ success: true, step });
+    } catch (error) {
+      console.error("Error updating process step:", error);
+      res.status(400).json({ success: false, message: "Failed to update process step" });
+    }
+  });
+
+  app.delete("/api/process-steps/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteProcessStep(req.params.id);
+      res.json({ success: true, message: "Process step deleted" });
+    } catch (error) {
+      console.error("Error deleting process step:", error);
+      res.status(500).json({ success: false, message: "Failed to delete process step" });
+    }
+  });
+
+  app.get("/api/testimonials", async (req, res) => {
+    try {
+      const allTestimonials = await storage.getAllTestimonials();
+      res.json({ success: true, testimonials: allTestimonials });
+    } catch (error) {
+      console.error("Error fetching testimonials:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch testimonials" });
+    }
+  });
+
+  app.post("/api/testimonials", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertTestimonialSchema.parse(req.body);
+      const testimonial = await storage.createTestimonial(validatedData);
+      res.json({ success: true, testimonial });
+    } catch (error) {
+      console.error("Error creating testimonial:", error);
+      res.status(400).json({ success: false, message: "Failed to create testimonial" });
+    }
+  });
+
+  app.put("/api/testimonials/:id", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = updateTestimonialSchema.parse(req.body);
+      const testimonial = await storage.updateTestimonial(req.params.id, validatedData);
+      if (!testimonial) {
+        return res.status(404).json({ success: false, message: "Testimonial not found" });
+      }
+      res.json({ success: true, testimonial });
+    } catch (error) {
+      console.error("Error updating testimonial:", error);
+      res.status(400).json({ success: false, message: "Failed to update testimonial" });
+    }
+  });
+
+  app.delete("/api/testimonials/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteTestimonial(req.params.id);
+      res.json({ success: true, message: "Testimonial deleted" });
+    } catch (error) {
+      console.error("Error deleting testimonial:", error);
+      res.status(500).json({ success: false, message: "Failed to delete testimonial" });
     }
   });
 
