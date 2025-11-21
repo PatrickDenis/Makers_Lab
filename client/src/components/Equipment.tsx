@@ -2,6 +2,8 @@ import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import type { Equipment as EquipmentType } from "@shared/schema";
 
 import equipment1 from "@assets/generated_images/Laser_cutter_machine_equipment_00668cbf.png";
 import equipment2 from "@assets/generated_images/CNC_milling_machine_equipment_c5559442.png";
@@ -9,16 +11,12 @@ import equipment3 from "@assets/generated_images/3D_printer_farm_equipment_fc60a
 
 const equipmentImages = [equipment1, equipment2, equipment3];
 
-const capabilities = [
-  { label: "Laser Cutting", spec: "Up to 1/2\" steel, 1\" acrylic" },
-  { label: "CNC Precision", spec: "±0.001\" tolerance" },
-  { label: "3D Print Volume", spec: "12\" x 12\" x 16\"" },
-  { label: "Materials", spec: "Metal, plastic, wood, composites" },
-  { label: "Welding", spec: "MIG, TIG, Stick certified" },
-  { label: "Finishing", spec: "Powder coat, anodize, polish" },
-];
-
 export default function Equipment() {
+  const { data, isLoading } = useQuery<{ success: boolean; equipment: EquipmentType[] }>({
+    queryKey: ["/api/equipment"]
+  });
+
+  const capabilities = data?.equipment || [];
   const [currentImage, setCurrentImage] = useState(0);
 
   const nextImage = () => {
@@ -88,14 +86,18 @@ export default function Equipment() {
 
           <div>
             <h3 className="text-2xl font-bold mb-6">Technical Specifications</h3>
-            <div className="space-y-4">
-              {capabilities.map((cap, idx) => (
-                <div key={idx} className="flex justify-between items-start pb-4 border-b border-border">
-                  <span className="font-semibold text-base">{cap.label}</span>
-                  <span className="font-mono text-sm text-muted-foreground text-right">{cap.spec}</span>
-                </div>
-              ))}
-            </div>
+            {isLoading ? (
+              <p className="text-muted-foreground">Loading capabilities...</p>
+            ) : (
+              <div className="space-y-4">
+                {capabilities.map((cap, idx) => (
+                  <div key={cap.id} className="flex justify-between items-start pb-4 border-b border-border">
+                    <span className="font-semibold text-base">{cap.label}</span>
+                    <span className="font-mono text-sm text-muted-foreground text-right">{cap.spec}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
