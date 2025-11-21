@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 const footerLinks = {
   services: [
@@ -166,6 +167,9 @@ export default function Footer() {
               <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Terms of Service
               </a>
+              <Link href="/admin" className="text-sm text-muted-foreground hover:text-primary transition-colors" data-testid="link-admin">
+                Admin
+              </Link>
             </div>
           </div>
         </div>

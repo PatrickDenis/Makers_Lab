@@ -4,9 +4,17 @@ import {
   type ContactSubmission,
   type InsertContactSubmission,
   type NewsletterSignup,
-  type InsertNewsletterSignup
+  type InsertNewsletterSignup,
+  type Service,
+  type InsertService,
+  type UpdateService,
+  users,
+  contactSubmissions,
+  newsletterSignups,
+  services
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -18,80 +26,102 @@ export interface IStorage {
   
   createNewsletterSignup(signup: InsertNewsletterSignup): Promise<NewsletterSignup>;
   getAllNewsletterSignups(): Promise<NewsletterSignup[]>;
+  
+  getAllServices(): Promise<Service[]>;
+  getService(id: string): Promise<Service | undefined>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: string, service: UpdateService): Promise<Service | undefined>;
+  deleteService(id: string): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private contactSubmissions: Map<string, ContactSubmission>;
-  private newsletterSignups: Map<string, NewsletterSignup>;
-
-  constructor() {
-    this.users = new Map();
-    this.contactSubmissions = new Map();
-    this.newsletterSignups = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async createContactSubmission(insertSubmission: InsertContactSubmission): Promise<ContactSubmission> {
-    const id = randomUUID();
-    const submission: ContactSubmission = {
-      ...insertSubmission,
-      phone: insertSubmission.phone ?? null,
-      budget: insertSubmission.budget ?? null,
-      timeline: insertSubmission.timeline ?? null,
-      id,
-      createdAt: new Date(),
-    };
-    this.contactSubmissions.set(id, submission);
+    const [submission] = await db
+      .insert(contactSubmissions)
+      .values(insertSubmission)
+      .returning();
     return submission;
   }
 
   async getAllContactSubmissions(): Promise<ContactSubmission[]> {
-    return Array.from(this.contactSubmissions.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    );
+    return await db
+      .select()
+      .from(contactSubmissions)
+      .orderBy(desc(contactSubmissions.createdAt));
   }
 
   async createNewsletterSignup(insertSignup: InsertNewsletterSignup): Promise<NewsletterSignup> {
-    const existing = Array.from(this.newsletterSignups.values()).find(
-      (signup) => signup.email === insertSignup.email
-    );
-    
-    if (existing) {
-      throw new Error("Email already subscribed to newsletter");
+    try {
+      const [signup] = await db
+        .insert(newsletterSignups)
+        .values(insertSignup)
+        .returning();
+      return signup;
+    } catch (error: any) {
+      if (error.code === '23505') {
+        throw new Error("Email already subscribed to newsletter");
+      }
+      throw error;
     }
-
-    const id = randomUUID();
-    const signup: NewsletterSignup = {
-      ...insertSignup,
-      id,
-      createdAt: new Date(),
-    };
-    this.newsletterSignups.set(id, signup);
-    return signup;
   }
 
   async getAllNewsletterSignups(): Promise<NewsletterSignup[]> {
-    return Array.from(this.newsletterSignups.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    );
+    return await db
+      .select()
+      .from(newsletterSignups)
+      .orderBy(desc(newsletterSignups.createdAt));
+  }
+
+  async getAllServices(): Promise<Service[]> {
+    return await db
+      .select()
+      .from(services)
+      .orderBy(services.order);
+  }
+
+  async getService(id: string): Promise<Service | undefined> {
+    const [service] = await db.select().from(services).where(eq(services.id, id));
+    return service || undefined;
+  }
+
+  async createService(insertService: InsertService): Promise<Service> {
+    const [service] = await db
+      .insert(services)
+      .values(insertService)
+      .returning();
+    return service;
+  }
+
+  async updateService(id: string, updateService: UpdateService): Promise<Service | undefined> {
+    const [service] = await db
+      .update(services)
+      .set({ ...updateService, updatedAt: new Date() })
+      .where(eq(services.id, id))
+      .returning();
+    return service || undefined;
+  }
+
+  async deleteService(id: string): Promise<void> {
+    await db.delete(services).where(eq(services.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

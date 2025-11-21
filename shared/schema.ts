@@ -49,3 +49,26 @@ export const insertNewsletterSignupSchema = createInsertSchema(newsletterSignups
 
 export type InsertNewsletterSignup = z.infer<typeof insertNewsletterSignupSchema>;
 export type NewsletterSignup = typeof newsletterSignups.$inferSelect;
+
+export const services = pgTable("services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  icon: text("icon").notNull(),
+  imageUrl: text("image_url"),
+  order: text("order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertServiceSchema = createInsertSchema(services).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateServiceSchema = insertServiceSchema.partial();
+
+export type InsertService = z.infer<typeof insertServiceSchema>;
+export type UpdateService = z.infer<typeof updateServiceSchema>;
+export type Service = typeof services.$inferSelect;
