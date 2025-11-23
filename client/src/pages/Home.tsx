@@ -1,4 +1,3 @@
-import { useState } from "react";
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import Services from "@/components/Services";
@@ -9,43 +8,14 @@ import Testimonials from "@/components/Testimonials";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { X, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default function Home() {
-  const [showBanner, setShowBanner] = useState(true);
-
-  if (!showBanner) {
-    return (
-      <div className="min-h-screen">
-        <Navigation />
-        <Hero />
-        <Services />
-        <Portfolio />
-        <Equipment />
-        <Process />
-        <Testimonials />
-        <Contact />
-        <Footer />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen">
       {/* Construction Banner Overlay */}
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-6 relative">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute top-4 right-4"
-            onClick={() => setShowBanner(false)}
-            data-testid="button-close-banner"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-
+        <Card className="max-w-md w-full p-6">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <AlertCircle className="w-8 h-8 text-primary" />
