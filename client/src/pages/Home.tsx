@@ -64,14 +64,6 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">
               Some features may be temporarily unavailable during this time. We appreciate your patience.
             </p>
-
-            <Button
-              onClick={() => setShowBanner(false)}
-              className="w-full"
-              data-testid="button-dismiss-banner"
-            >
-              Continue to Site
-            </Button>
           </div>
         </Card>
       </div>
