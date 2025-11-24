@@ -27,7 +27,7 @@ export default function Home() {
                 We're making some improvements to serve you better!
               </p>
               <p className="text-sm font-medium text-primary">
-                November 21 - November 24, 2024
+                November 21 - November 30, 2024
               </p>
             </div>
 
