@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Plus, Edit2, Trash2, LogOut } from "lucide-react";
-import type { Service, Project, Equipment, ProcessStep, Testimonial } from "@shared/schema";
+import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner } from "@shared/schema";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,15 @@ export default function AdminDashboard() {
     project: "",
     order: "0"
   });
+  
+  const [bannerFormData, setBannerFormData] = useState({
+    enabled: false,
+    title: "Site Under Construction",
+    subtitle: "We're making some improvements to serve you better!",
+    startDate: "",
+    endDate: "",
+    message: "Some features may be temporarily unavailable during this time. We appreciate your patience."
+  });
 
   const { data: authData, isLoading: isCheckingAuth } = useQuery<{ isAuthenticated: boolean }>({
     queryKey: ["/api/admin/check"],
@@ -98,12 +108,29 @@ export default function AdminDashboard() {
   const { data: testimonialsData, isLoading: isLoadingTestimonials } = useQuery<{ success: boolean; testimonials: Testimonial[] }>({
     queryKey: ["/api/testimonials"],
   });
+  
+  const { data: bannerData, isLoading: isLoadingBanner } = useQuery<{ success: boolean; banner: ConstructionBanner | null }>({
+    queryKey: ["/api/construction-banner"],
+  });
 
   useEffect(() => {
     if (!isCheckingAuth && !authData?.isAuthenticated) {
       setLocation("/admin");
     }
   }, [authData, isCheckingAuth, setLocation]);
+  
+  useEffect(() => {
+    if (bannerData?.banner) {
+      setBannerFormData({
+        enabled: bannerData.banner.enabled,
+        title: bannerData.banner.title,
+        subtitle: bannerData.banner.subtitle,
+        startDate: bannerData.banner.startDate,
+        endDate: bannerData.banner.endDate,
+        message: bannerData.banner.message,
+      });
+    }
+  }, [bannerData]);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -358,6 +385,26 @@ export default function AdminDashboard() {
       toast({ title: "Error", description: "Failed to delete testimonial", variant: "destructive" });
     },
   });
+  
+  // Construction Banner Mutation
+  const updateBannerMutation = useMutation({
+    mutationFn: async (data: typeof bannerFormData) => {
+      const res = await apiRequest("PUT", "/api/construction-banner", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/construction-banner"] });
+      toast({ title: "Banner updated", description: "The construction banner settings have been saved" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update banner settings", variant: "destructive" });
+    },
+  });
+  
+  const handleBannerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateBannerMutation.mutate(bannerFormData);
+  };
 
   // Form reset functions
   const resetServiceForm = () => {
@@ -539,12 +586,13 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
             <TabsTrigger value="projects" data-testid="tab-projects">Projects</TabsTrigger>
             <TabsTrigger value="equipment" data-testid="tab-equipment">Equipment</TabsTrigger>
             <TabsTrigger value="process" data-testid="tab-process">Process</TabsTrigger>
             <TabsTrigger value="testimonials" data-testid="tab-testimonials">Testimonials</TabsTrigger>
+            <TabsTrigger value="banner" data-testid="tab-banner">Banner</TabsTrigger>
           </TabsList>
 
           {/* Services Tab */}
@@ -929,6 +977,122 @@ export default function AdminDashboard() {
                     <Plus className="w-4 h-4 mr-2" />
                     Add Your First Testimonial
                   </Button>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+          
+          {/* Construction Banner Tab */}
+          <TabsContent value="banner">
+            <div className="mb-8">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold mb-2">Construction Banner Settings</h2>
+                <p className="text-muted-foreground">
+                  Control the site-wide construction/maintenance banner displayed to visitors
+                </p>
+              </div>
+
+              {isLoadingBanner ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Card className="p-6 max-w-2xl">
+                  <form onSubmit={handleBannerSubmit} className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <Label htmlFor="banner-enabled" className="text-base font-semibold">
+                          Enable Construction Banner
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          When enabled, visitors will see a construction overlay on the site
+                        </p>
+                      </div>
+                      <Switch
+                        id="banner-enabled"
+                        checked={bannerFormData.enabled}
+                        onCheckedChange={(checked) => setBannerFormData({ ...bannerFormData, enabled: checked })}
+                        data-testid="switch-banner-enabled"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="banner-title">Banner Title</Label>
+                      <Input
+                        id="banner-title"
+                        value={bannerFormData.title}
+                        onChange={(e) => setBannerFormData({ ...bannerFormData, title: e.target.value })}
+                        placeholder="Site Under Construction"
+                        data-testid="input-banner-title"
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="banner-subtitle">Subtitle</Label>
+                      <Input
+                        id="banner-subtitle"
+                        value={bannerFormData.subtitle}
+                        onChange={(e) => setBannerFormData({ ...bannerFormData, subtitle: e.target.value })}
+                        placeholder="We're making some improvements to serve you better!"
+                        data-testid="input-banner-subtitle"
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="banner-start-date">Start Date</Label>
+                        <Input
+                          id="banner-start-date"
+                          value={bannerFormData.startDate}
+                          onChange={(e) => setBannerFormData({ ...bannerFormData, startDate: e.target.value })}
+                          placeholder="November 21"
+                          data-testid="input-banner-start-date"
+                          className="mt-2"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="banner-end-date">End Date</Label>
+                        <Input
+                          id="banner-end-date"
+                          value={bannerFormData.endDate}
+                          onChange={(e) => setBannerFormData({ ...bannerFormData, endDate: e.target.value })}
+                          placeholder="November 30"
+                          data-testid="input-banner-end-date"
+                          className="mt-2"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="banner-message">Additional Message</Label>
+                      <Textarea
+                        id="banner-message"
+                        value={bannerFormData.message}
+                        onChange={(e) => setBannerFormData({ ...bannerFormData, message: e.target.value })}
+                        placeholder="Some features may be temporarily unavailable during this time. We appreciate your patience."
+                        data-testid="textarea-banner-message"
+                        className="mt-2 min-h-24"
+                      />
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      disabled={updateBannerMutation.isPending}
+                      data-testid="button-save-banner"
+                      className="w-full"
+                    >
+                      {updateBannerMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Banner Settings"
+                      )}
+                    </Button>
+                  </form>
                 </Card>
               )}
             </div>
