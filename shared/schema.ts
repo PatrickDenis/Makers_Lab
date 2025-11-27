@@ -191,3 +191,10 @@ export const seedLog = pgTable("seed_log", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   seededAt: timestamp("seeded_at").defaultNow().notNull(),
 });
+
+// Session table managed by connect-pg-simple - included in schema to prevent Drizzle from deleting it
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey(),
+  sess: text("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+});
