@@ -1,4 +1,6 @@
-import { storage } from "./storage";
+import { db, pool } from "./db";
+import { eq } from "drizzle-orm";
+import { services, projects, equipment, processSteps, testimonials } from "@shared/schema";
 
 const initialServices = [
   {
@@ -149,51 +151,62 @@ const initialTestimonials = [
   }
 ];
 
-let seeded = false;
-
 export async function seedDatabase() {
   try {
-    if (seeded) {
-      console.log("In-memory storage already seeded, skipping...");
+    console.log("Checking database for initial content...");
+    
+    // Create seed_log table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS seed_log (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        seeded_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    
+    // Check if already seeded
+    const seedResult = await pool.query("SELECT * FROM seed_log LIMIT 1");
+    if (seedResult.rows.length > 0) {
+      console.log("Database already seeded, skipping...");
       return;
     }
-
-    console.log("Seeding in-memory storage...");
     
-    // Seed services
-    for (const service of initialServices) {
-      await storage.createService(service);
+    // Mark as seeded first
+    await pool.query("INSERT INTO seed_log (id) VALUES (gen_random_uuid())");
+    console.log("Starting initial seed...");
+    
+    const existingServices = await db.select().from(services);
+    if (existingServices.length === 0) {
+      await db.insert(services).values(initialServices);
+      console.log("Services seeded!");
     }
-    console.log("Services seeded!");
     
-    // Seed projects
-    for (const project of initialProjects) {
-      await storage.createProject(project);
+    const existingProjects = await db.select().from(projects);
+    if (existingProjects.length === 0) {
+      await db.insert(projects).values(initialProjects);
+      console.log("Projects seeded!");
     }
-    console.log("Projects seeded!");
     
-    // Seed equipment
-    for (const item of initialEquipment) {
-      await storage.createEquipment(item);
+    const existingEquipment = await db.select().from(equipment);
+    if (existingEquipment.length === 0) {
+      await db.insert(equipment).values(initialEquipment);
+      console.log("Equipment seeded!");
     }
-    console.log("Equipment seeded!");
     
-    // Seed process steps
-    for (const step of initialProcessSteps) {
-      await storage.createProcessStep(step);
+    const existingProcessSteps = await db.select().from(processSteps);
+    if (existingProcessSteps.length === 0) {
+      await db.insert(processSteps).values(initialProcessSteps);
+      console.log("Process steps seeded!");
     }
-    console.log("Process steps seeded!");
     
-    // Seed testimonials
-    for (const testimonial of initialTestimonials) {
-      await storage.createTestimonial(testimonial);
+    const existingTestimonials = await db.select().from(testimonials);
+    if (existingTestimonials.length === 0) {
+      await db.insert(testimonials).values(initialTestimonials);
+      console.log("Testimonials seeded!");
     }
-    console.log("Testimonials seeded!");
     
-    seeded = true;
-    console.log("In-memory storage seeding complete!");
+    console.log("Database seeding complete!");
   } catch (error) {
-    console.error("Error seeding storage:", error);
+    console.error("Error seeding database:", error);
   }
 }
 

@@ -607,6 +607,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use MemStorage (in-memory) for development/testing
-// This bypasses database connectivity issues
-export const storage = new MemStorage();
+// Use DatabaseStorage to preserve user data
+export const storage = new DatabaseStorage();
