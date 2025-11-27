@@ -27,6 +27,11 @@ A modern, professional website for a precision fabrication shop showcasing servi
 - ✅ **Secure admin authentication with password protection**
 - ✅ **PostgreSQL-backed session management**
 - ✅ **Construction banner management (enable/disable, customizable content)**
+- ✅ **Image upload functionality for admin dashboard:**
+  - Services, Projects, Equipment sections support image uploads
+  - Testimonials section supports avatar uploads
+  - Reusable ImageUploader component with drag-and-drop
+  - Object storage integration via Replit's built-in storage
 - ✅ Toast notifications for user feedback
 - ✅ Loading states during form submissions
 
@@ -54,6 +59,10 @@ A modern, professional website for a precision fabrication shop showcasing servi
 **Construction Banner:**
 - `GET /api/construction-banner` - Get banner settings (public)
 - `PUT /api/construction-banner` - Update banner settings (admin only)
+
+**Image Upload (Admin Protected):**
+- `POST /api/objects/upload` - Get presigned upload URL (admin only)
+- `GET /objects/:objectPath` - Retrieve uploaded objects
 
 ## Technology Stack
 
