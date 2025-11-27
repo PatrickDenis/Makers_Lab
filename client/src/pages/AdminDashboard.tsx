@@ -55,6 +55,7 @@ export default function AdminDashboard() {
   const [equipmentFormData, setEquipmentFormData] = useState({
     label: "",
     spec: "",
+    imageUrl: "",
     order: "0"
   });
   
@@ -74,6 +75,7 @@ export default function AdminDashboard() {
     author: "",
     company: "",
     project: "",
+    avatarUrl: "",
     order: "0"
   });
   
@@ -426,7 +428,7 @@ export default function AdminDashboard() {
   };
 
   const resetEquipmentForm = () => {
-    setEquipmentFormData({ label: "", spec: "", order: "0" });
+    setEquipmentFormData({ label: "", spec: "", imageUrl: "", order: "0" });
   };
 
   const resetProcessStepForm = () => {
@@ -434,7 +436,7 @@ export default function AdminDashboard() {
   };
 
   const resetTestimonialForm = () => {
-    setTestimonialFormData({ quote: "", author: "", company: "", project: "", order: "0" });
+    setTestimonialFormData({ quote: "", author: "", company: "", project: "", avatarUrl: "", order: "0" });
   };
 
   // Edit handlers
@@ -468,6 +470,7 @@ export default function AdminDashboard() {
     setEquipmentFormData({
       label: equipment.label,
       spec: equipment.spec,
+      imageUrl: equipment.imageUrl || "",
       order: equipment.order
     });
     setIsEquipmentDialogOpen(true);
@@ -491,6 +494,7 @@ export default function AdminDashboard() {
       author: testimonial.author,
       company: testimonial.company,
       project: testimonial.project,
+      avatarUrl: testimonial.avatarUrl || "",
       order: testimonial.order
     });
     setIsTestimonialDialogOpen(true);
@@ -1474,6 +1478,43 @@ export default function AdminDashboard() {
             </div>
 
             <div>
+              <Label htmlFor="equipment-imageUrl">Equipment Image (optional)</Label>
+              <div className="mt-2 space-y-3">
+                {equipmentFormData.imageUrl && (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden border">
+                    <img
+                      src={equipmentFormData.imageUrl}
+                      alt="Equipment preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2 items-center">
+                  <ImageUploader
+                    currentImageUrl={equipmentFormData.imageUrl}
+                    onUploadComplete={(url) => setEquipmentFormData({ ...equipmentFormData, imageUrl: url })}
+                    buttonText="Upload Image"
+                  />
+                  <span className="text-sm text-muted-foreground">or</span>
+                  <Input
+                    id="equipment-imageUrl"
+                    value={equipmentFormData.imageUrl}
+                    onChange={(e) => setEquipmentFormData({ ...equipmentFormData, imageUrl: e.target.value })}
+                    placeholder="Enter image URL"
+                    data-testid="input-equipment-image"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload an image or enter a URL directly
+                </p>
+              </div>
+            </div>
+
+            <div>
               <Label htmlFor="equipment-order">Display Order *</Label>
               <Input
                 id="equipment-order"
@@ -1691,6 +1732,43 @@ export default function AdminDashboard() {
                 data-testid="input-testimonial-project"
                 className="mt-2"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="testimonial-avatar">Author Avatar (optional)</Label>
+              <div className="mt-2 space-y-3">
+                {testimonialFormData.avatarUrl && (
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden border">
+                    <img
+                      src={testimonialFormData.avatarUrl}
+                      alt="Avatar preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2 items-center">
+                  <ImageUploader
+                    currentImageUrl={testimonialFormData.avatarUrl}
+                    onUploadComplete={(url) => setTestimonialFormData({ ...testimonialFormData, avatarUrl: url })}
+                    buttonText="Upload Avatar"
+                  />
+                  <span className="text-sm text-muted-foreground">or</span>
+                  <Input
+                    id="testimonial-avatar"
+                    value={testimonialFormData.avatarUrl}
+                    onChange={(e) => setTestimonialFormData({ ...testimonialFormData, avatarUrl: e.target.value })}
+                    placeholder="Enter avatar URL"
+                    data-testid="input-testimonial-avatar"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload an avatar image or enter a URL directly
+                </p>
+              </div>
             </div>
 
             <div>
