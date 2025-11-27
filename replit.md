@@ -293,6 +293,30 @@ The admin dashboard is accessible via the "Admin" link in the footer. Admin acce
 - `DATABASE_URL` - PostgreSQL connection string
 - `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
 
+**Object Storage (automatically configured):**
+- `DEFAULT_OBJECT_STORAGE_BUCKET_ID` - Bucket ID for object storage (replit-objstore-8bdc0b6e-8ee2-46cc-a89b-e19c03a75c03)
+- `PRIVATE_OBJECT_DIR` - Directory for private uploads (/uploads)
+
+## Object Storage
+
+**Image Upload Flow:**
+1. Admin uploads image via ObjectUploader component
+2. Backend receives file via multer temporary storage
+3. File is uploaded to Replit Object Storage via signed PUT URL
+4. Original temporary file is deleted
+5. Image URL `/objects/uploads/{uuid}` is stored in database
+
+**Object Serving:**
+- Images are served via `/objects/*` route
+- ObjectStorageService handles retrieval from cloud storage
+- Images persist across deployments (production-ready)
+
+**Technical Details:**
+- Uses `@replit/object-storage` package
+- ObjectStorageService (server/objectStorage.ts) handles all operations
+- Automatically prepends bucket ID to PRIVATE_OBJECT_DIR if not present
+- Supports content-type detection and streaming downloads
+
 ## Future Enhancements
 
 ### Immediate Next Steps
