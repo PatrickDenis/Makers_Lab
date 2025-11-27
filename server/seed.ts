@@ -21,13 +21,13 @@ const initialServices = [
     order: "3"
   },
   {
-    title: "Welding & Fabrication",
+    title: "Laser Welding /Cutting/Cleaning",
     description: "Professional welding services for structural and decorative metalwork.",
     icon: "Flame",
     order: "4"
   },
   {
-    title: "Metal Finishing",
+    title: "Plasma Cutting",
     description: "Powder coating, anodizing, and polishing for perfect surface treatments.",
     icon: "Sparkles",
     order: "5"
