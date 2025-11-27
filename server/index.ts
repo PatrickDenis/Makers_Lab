@@ -110,15 +110,20 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
+  
+  // Start the server
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
-    
-    // Seed database AFTER server starts listening
-    // This ensures health checks pass during initialization
+  });
+  
+  // Seed database AFTER server starts listening
+  // This ensures health checks pass during initialization
+  // Fire-and-forget - seed in background without blocking
+  setImmediate(() => {
     seedDatabase().catch(err => {
       console.error("Error seeding database:", err);
     });

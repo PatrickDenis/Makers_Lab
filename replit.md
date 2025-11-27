@@ -278,15 +278,29 @@ The application has been tested end-to-end with Playwright including:
 **Before deploying to production:**
 1. ✅ Ensure SESSION_SECRET environment variable is set (required)
 2. ✅ Ensure ADMIN_PASSWORD environment variable is set (required)
-3. ⚠️ Monitor session table growth in PostgreSQL
-4. ⚠️ Consider adding logging/alerting for authentication failures
-5. ⚠️ Rotate SESSION_SECRET and ADMIN_PASSWORD periodically
-6. ⚠️ Review and configure cookie.secure based on HTTPS availability
+3. ✅ Deployment configured with Autoscale (not Static)
+4. ✅ Build command: `npm run build`
+5. ✅ Run command: `npm run start`
+6. ⚠️ Monitor session table growth in PostgreSQL
+7. ⚠️ Consider adding logging/alerting for authentication failures
+8. ⚠️ Rotate SESSION_SECRET and ADMIN_PASSWORD periodically
+9. ⚠️ Review and configure cookie.secure based on HTTPS availability
 
 **Database Management:**
 - Use `npm run db:push` to sync schema changes to database
 - Sessions are automatically cleaned up by connect-pg-simple based on TTL
-- Initial services data is seeded via `server/seed.ts`
+- Initial content is auto-seeded on first startup via `server/seed.ts`
+- Old image URLs are automatically migrated from `/attached_assets/` to `/seed-images/`
+- Duplicate content is automatically cleaned up on startup
+- seed_log and session tables are created/managed at runtime via raw SQL (not in Drizzle schema)
+
+**Recent Fixes (November 27, 2024):**
+- Fixed image URLs to use `/seed-images/` paths included in production build
+- Added automatic image URL migration for existing database entries
+- Removed seed_log/session from Drizzle schema to avoid migration conflicts
+- Created `/health` endpoint for deployment health checks
+- Fixed server startup to ensure proper shutdown lifecycle
+- Improved duplicate content cleanup on startup
 
 ## Notes
 
