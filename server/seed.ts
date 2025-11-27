@@ -161,45 +161,33 @@ export async function seedDatabase() {
     }
     seedAttempted = true;
     
-    console.log("Attempting to seed database with default content...");
-    
-    // Seed services - ignore if they already exist (ON CONFLICT approach)
-    // This is fire-and-forget to avoid connection pool hangs
-    try {
-      await db.insert(services).values(initialServices).onConflictDoNothing();
-    } catch (e) {
-      // Silently ignore - data may already exist
+    // Check if services table already has data
+    // If it does, we preserve existing custom data and don't seed
+    const existingCount = await db.select().from(services).limit(1);
+    if (existingCount.length > 0) {
+      console.log("Database already contains services, preserving existing data...");
+      return;
     }
     
-    // Seed projects
-    try {
-      await db.insert(projects).values(initialProjects).onConflictDoNothing();
-    } catch (e) {
-      // Silently ignore
-    }
+    console.log("Seeding database with default content...");
     
-    // Seed equipment
-    try {
-      await db.insert(equipment).values(initialEquipment).onConflictDoNothing();
-    } catch (e) {
-      // Silently ignore
-    }
+    // Only seed if table is empty
+    await db.insert(services).values(initialServices);
+    console.log("✓ Services seeded");
     
-    // Seed process steps
-    try {
-      await db.insert(processSteps).values(initialProcessSteps).onConflictDoNothing();
-    } catch (e) {
-      // Silently ignore
-    }
+    await db.insert(projects).values(initialProjects);
+    console.log("✓ Projects seeded");
     
-    // Seed testimonials
-    try {
-      await db.insert(testimonials).values(initialTestimonials).onConflictDoNothing();
-    } catch (e) {
-      // Silently ignore
-    }
+    await db.insert(equipment).values(initialEquipment);
+    console.log("✓ Equipment seeded");
     
-    console.log("Database seed attempt completed");
+    await db.insert(processSteps).values(initialProcessSteps);
+    console.log("✓ Process steps seeded");
+    
+    await db.insert(testimonials).values(initialTestimonials);
+    console.log("✓ Testimonials seeded");
+    
+    console.log("✓ Database seeding complete");
   } catch (error) {
     console.error("Error during database seed:", error);
     // Don't throw - let the app continue
