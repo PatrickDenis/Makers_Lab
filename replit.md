@@ -26,6 +26,7 @@ A modern, professional website for a precision fabrication shop showcasing servi
 - ✅ **Services CRUD operations (create, read, update, delete)**
 - ✅ **Secure admin authentication with password protection**
 - ✅ **PostgreSQL-backed session management**
+- ✅ **Construction banner management (enable/disable, customizable content)**
 - ✅ Toast notifications for user feedback
 - ✅ Loading states during form submissions
 
@@ -49,6 +50,10 @@ A modern, professional website for a precision fabrication shop showcasing servi
 - `POST /api/services` - Create new service (admin only)
 - `PATCH /api/services/:id` - Update service (admin only)
 - `DELETE /api/services/:id` - Delete service (admin only)
+
+**Construction Banner:**
+- `GET /api/construction-banner` - Get banner settings (public)
+- `PUT /api/construction-banner` - Update banner settings (admin only)
 
 ## Technology Stack
 
@@ -178,6 +183,20 @@ All data is stored in a PostgreSQL database with persistent storage. Sessions ar
 }
 ```
 
+**Construction Banner (single row):**
+```typescript
+{
+  id: string (UUID);
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  startDate: string;
+  endDate: string;
+  message: string;
+  updatedAt: Date;
+}
+```
+
 ## Admin Dashboard
 
 The admin dashboard is accessible via the "Admin" link in the footer. Admin access is protected by password authentication.
@@ -186,6 +205,8 @@ The admin dashboard is accessible via the "Admin" link in the footer. Admin acce
 - ✅ Password-based authentication
 - ✅ Secure session management (PostgreSQL-backed)
 - ✅ Services management (add, edit, delete)
+- ✅ Portfolio, Equipment, Process Steps, and Testimonials management
+- ✅ Construction banner management (enable/disable, custom content)
 - ✅ Real-time updates to the homepage
 - ✅ Form validation with error handling
 - ✅ Loading states for all operations
@@ -237,6 +258,7 @@ The application has been tested end-to-end with Playwright including:
 - Newsletter signup with duplicate prevention
 - Admin authentication and session management
 - Services CRUD operations through admin dashboard
+- Construction banner enable/disable and content customization
 - API endpoint responses and error handling
 - Toast notifications for user feedback
 - Form clearing after submission
