@@ -32,18 +32,29 @@ export default function Services() {
               return (
                 <Card 
                   key={service.id} 
-                  className="p-6 hover-elevate cursor-pointer transition-all"
+                  className="overflow-hidden hover-elevate cursor-pointer transition-all"
                   data-testid={`card-service-${index}`}
                 >
-                  <div className="mb-4">
-                    <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center">
-                      <IconComponent className="w-6 h-6 text-primary" />
+                  {service.imageUrl ? (
+                    <div className="aspect-video w-full">
+                      <img 
+                        src={service.imageUrl} 
+                        alt={service.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
+                  ) : null}
+                  <div className="p-6">
+                    <div className="mb-4">
+                      <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center">
+                        <IconComponent className="w-6 h-6 text-primary" />
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-semibold mb-3">{service.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {service.description}
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-semibold mb-3">{service.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {service.description}
-                  </p>
                 </Card>
               );
             })}
