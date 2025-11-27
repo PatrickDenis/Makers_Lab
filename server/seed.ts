@@ -1,6 +1,4 @@
-import { db, pool } from "./db";
-import { eq } from "drizzle-orm";
-import { services, projects, equipment, processSteps, testimonials } from "@shared/schema";
+import { storage } from "./storage";
 
 const initialServices = [
   {
@@ -151,138 +149,51 @@ const initialTestimonials = [
   }
 ];
 
-async function migrateImageUrls() {
-  // Fix old image URLs that pointed to attached_assets
-  await pool.query(`
-    UPDATE projects 
-    SET image_url = REPLACE(image_url, '/attached_assets/generated_images/', '/seed-images/') 
-    WHERE image_url LIKE '/attached_assets/generated_images/%'
-  `);
-}
-
-async function cleanupDuplicates() {
-  console.log("Cleaning up any duplicate entries...");
-  
-  // Clean duplicate services (keep first occurrence by title)
-  const allServices = await db.select().from(services);
-  const seenServiceTitles = new Set<string>();
-  for (const service of allServices) {
-    if (seenServiceTitles.has(service.title)) {
-      await db.delete(services).where(eq(services.id, service.id));
-    } else {
-      seenServiceTitles.add(service.title);
-    }
-  }
-  
-  // Clean duplicate projects (keep first occurrence by title)
-  const allProjects = await db.select().from(projects);
-  const seenProjectTitles = new Set<string>();
-  for (const project of allProjects) {
-    if (seenProjectTitles.has(project.title)) {
-      await db.delete(projects).where(eq(projects.id, project.id));
-    } else {
-      seenProjectTitles.add(project.title);
-    }
-  }
-  
-  // Clean duplicate equipment (keep first occurrence by label)
-  const allEquipment = await db.select().from(equipment);
-  const seenEquipmentLabels = new Set<string>();
-  for (const equip of allEquipment) {
-    if (seenEquipmentLabels.has(equip.label)) {
-      await db.delete(equipment).where(eq(equipment.id, equip.id));
-    } else {
-      seenEquipmentLabels.add(equip.label);
-    }
-  }
-  
-  // Clean duplicate process steps (keep first occurrence by title)
-  const allProcessSteps = await db.select().from(processSteps);
-  const seenStepTitles = new Set<string>();
-  for (const step of allProcessSteps) {
-    if (seenStepTitles.has(step.title)) {
-      await db.delete(processSteps).where(eq(processSteps.id, step.id));
-    } else {
-      seenStepTitles.add(step.title);
-    }
-  }
-  
-  // Clean duplicate testimonials (keep first occurrence by author)
-  const allTestimonials = await db.select().from(testimonials);
-  const seenTestimonialAuthors = new Set<string>();
-  for (const testimonial of allTestimonials) {
-    if (seenTestimonialAuthors.has(testimonial.author)) {
-      await db.delete(testimonials).where(eq(testimonials.id, testimonial.id));
-    } else {
-      seenTestimonialAuthors.add(testimonial.author);
-    }
-  }
-  
-  console.log("Duplicate cleanup complete!");
-}
+let seeded = false;
 
 export async function seedDatabase() {
   try {
-    console.log("Checking database for initial content...");
-    
-    // Migrate any old image URLs first
-    await migrateImageUrls();
-    
-    // Always cleanup duplicates
-    await cleanupDuplicates();
-    
-    // Create seed_log table if it doesn't exist (using raw SQL to avoid migration issues)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS seed_log (
-        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-        seeded_at TIMESTAMP DEFAULT NOW() NOT NULL
-      )
-    `);
-    
-    // Check if already seeded using seed_log table
-    const seedResult = await pool.query("SELECT * FROM seed_log LIMIT 1");
-    if (seedResult.rows.length > 0) {
-      console.log("Database already seeded, skipping...");
+    if (seeded) {
+      console.log("In-memory storage already seeded, skipping...");
       return;
     }
+
+    console.log("Seeding in-memory storage...");
     
-    // Mark as seeded FIRST to prevent race conditions with multiple instances
-    await pool.query("INSERT INTO seed_log (id) VALUES (gen_random_uuid())");
-    console.log("Starting initial seed...");
-    
-    const existingServices = await db.select().from(services);
-    if (existingServices.length === 0) {
-      await db.insert(services).values(initialServices);
-      console.log("Services seeded!");
+    // Seed services
+    for (const service of initialServices) {
+      await storage.createService(service);
     }
+    console.log("Services seeded!");
     
-    const existingProjects = await db.select().from(projects);
-    if (existingProjects.length === 0) {
-      await db.insert(projects).values(initialProjects);
-      console.log("Projects seeded!");
+    // Seed projects
+    for (const project of initialProjects) {
+      await storage.createProject(project);
     }
+    console.log("Projects seeded!");
     
-    const existingEquipment = await db.select().from(equipment);
-    if (existingEquipment.length === 0) {
-      await db.insert(equipment).values(initialEquipment);
-      console.log("Equipment seeded!");
+    // Seed equipment
+    for (const item of initialEquipment) {
+      await storage.createEquipment(item);
     }
+    console.log("Equipment seeded!");
     
-    const existingProcessSteps = await db.select().from(processSteps);
-    if (existingProcessSteps.length === 0) {
-      await db.insert(processSteps).values(initialProcessSteps);
-      console.log("Process steps seeded!");
+    // Seed process steps
+    for (const step of initialProcessSteps) {
+      await storage.createProcessStep(step);
     }
+    console.log("Process steps seeded!");
     
-    const existingTestimonials = await db.select().from(testimonials);
-    if (existingTestimonials.length === 0) {
-      await db.insert(testimonials).values(initialTestimonials);
-      console.log("Testimonials seeded!");
+    // Seed testimonials
+    for (const testimonial of initialTestimonials) {
+      await storage.createTestimonial(testimonial);
     }
+    console.log("Testimonials seeded!");
     
-    console.log("Database seeding complete!");
+    seeded = true;
+    console.log("In-memory storage seeding complete!");
   } catch (error) {
-    console.error("Error seeding database:", error);
+    console.error("Error seeding storage:", error);
   }
 }
 
