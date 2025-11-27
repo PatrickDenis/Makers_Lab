@@ -21,13 +21,13 @@ const initialServices = [
     order: "3"
   },
   {
-    title: "Laser Welding /Cutting/Cleaning",
+    title: "Welding & Fabrication",
     description: "Professional welding services for structural and decorative metalwork.",
     icon: "Flame",
     order: "4"
   },
   {
-    title: "Plasma Cutting",
+    title: "Metal Finishing",
     description: "Powder coating, anodizing, and polishing for perfect surface treatments.",
     icon: "Sparkles",
     order: "5"
@@ -46,7 +46,7 @@ const initialProjects = [
     category: "Industrial",
     description: "CNC machined aluminum parts with tight tolerances for aerospace application.",
     tags: ["CNC", "Aluminum", "Aerospace"],
-    imageUrl: "/seed-images/CNC_machined_industrial_part_f29ddd5e.png",
+    imageUrl: "/attached_assets/generated_images/CNC_machined_industrial_part_f29ddd5e.png",
     order: "1"
   },
   {
@@ -54,7 +54,7 @@ const initialProjects = [
     category: "Art",
     description: "Custom laser-cut architectural metalwork for commercial interior design project.",
     tags: ["Laser Cutting", "Art", "Architecture"],
-    imageUrl: "/seed-images/Laser_cut_artistic_panel_cfaed520.png",
+    imageUrl: "/attached_assets/generated_images/Laser_cut_artistic_panel_cfaed520.png",
     order: "2"
   },
   {
@@ -62,7 +62,7 @@ const initialProjects = [
     category: "Prototype",
     description: "3D printed mechanical assembly for product development testing and validation.",
     tags: ["3D Printing", "Prototype", "Engineering"],
-    imageUrl: "/seed-images/3D_printed_prototype_assembly_34122b60.png",
+    imageUrl: "/attached_assets/generated_images/3D_printed_prototype_assembly_34122b60.png",
     order: "3"
   },
   {
@@ -70,7 +70,7 @@ const initialProjects = [
     category: "Industrial",
     description: "Heavy-duty welded steel frame for industrial machinery installation.",
     tags: ["Welding", "Steel", "Heavy Fabrication"],
-    imageUrl: "/seed-images/Welded_steel_frame_structure_0594cf3b.png",
+    imageUrl: "/attached_assets/generated_images/Welded_steel_frame_structure_0594cf3b.png",
     order: "4"
   },
   {
@@ -78,7 +78,7 @@ const initialProjects = [
     category: "Art",
     description: "Precision-machined brass and copper components for luxury furniture line.",
     tags: ["CNC", "Brass", "Luxury"],
-    imageUrl: "/seed-images/Custom_brass_hardware_components_ba9605f9.png",
+    imageUrl: "/attached_assets/generated_images/Custom_brass_hardware_components_ba9605f9.png",
     order: "5"
   }
 ];
@@ -150,51 +150,55 @@ const initialTestimonials = [
   }
 ];
 
-// Track if we've already attempted to seed this process
-let seedAttempted = false;
-
-export async function seedDatabase() {
+async function seed() {
   try {
-    // Only attempt once per process to avoid redundant operations
-    if (seedAttempted) {
-      return;
-    }
-    seedAttempted = true;
+    console.log("Seeding database...");
     
-    // Check if services table already has data
-    // If it does, we preserve existing custom data and don't seed
-    const existingCount = await db.select().from(services).limit(1);
-    if (existingCount.length > 0) {
-      console.log("Database already contains services, preserving existing data...");
-      return;
+    const existingServices = await db.select().from(services);
+    if (existingServices.length === 0) {
+      await db.insert(services).values(initialServices);
+      console.log("Services seeded!");
+    } else {
+      console.log("Services already seeded, skipping...");
     }
     
-    console.log("Seeding database with default content...");
+    const existingProjects = await db.select().from(projects);
+    if (existingProjects.length === 0) {
+      await db.insert(projects).values(initialProjects);
+      console.log("Projects seeded!");
+    } else {
+      console.log("Projects already seeded, skipping...");
+    }
     
-    // Only seed if table is empty
-    await db.insert(services).values(initialServices);
-    console.log("✓ Services seeded");
+    const existingEquipment = await db.select().from(equipment);
+    if (existingEquipment.length === 0) {
+      await db.insert(equipment).values(initialEquipment);
+      console.log("Equipment seeded!");
+    } else {
+      console.log("Equipment already seeded, skipping...");
+    }
     
-    await db.insert(projects).values(initialProjects);
-    console.log("✓ Projects seeded");
+    const existingProcessSteps = await db.select().from(processSteps);
+    if (existingProcessSteps.length === 0) {
+      await db.insert(processSteps).values(initialProcessSteps);
+      console.log("Process steps seeded!");
+    } else {
+      console.log("Process steps already seeded, skipping...");
+    }
     
-    await db.insert(equipment).values(initialEquipment);
-    console.log("✓ Equipment seeded");
+    const existingTestimonials = await db.select().from(testimonials);
+    if (existingTestimonials.length === 0) {
+      await db.insert(testimonials).values(initialTestimonials);
+      console.log("Testimonials seeded!");
+    } else {
+      console.log("Testimonials already seeded, skipping...");
+    }
     
-    await db.insert(processSteps).values(initialProcessSteps);
-    console.log("✓ Process steps seeded");
-    
-    await db.insert(testimonials).values(initialTestimonials);
-    console.log("✓ Testimonials seeded");
-    
-    console.log("✓ Database seeding complete");
+    console.log("Database seeding complete!");
   } catch (error) {
-    console.error("Error during database seed:", error);
-    // Don't throw - let the app continue
+    console.error("Error seeding database:", error);
+    throw error;
   }
 }
 
-// Allow running directly with: npx tsx server/seed.ts
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedDatabase().then(() => process.exit(0)).catch(() => process.exit(1));
-}
+seed().then(() => process.exit(0)).catch(() => process.exit(1));

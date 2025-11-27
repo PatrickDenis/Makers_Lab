@@ -186,6 +186,3 @@ export const updateConstructionBannerSchema = insertConstructionBannerSchema.par
 export type InsertConstructionBanner = z.infer<typeof insertConstructionBannerSchema>;
 export type UpdateConstructionBanner = z.infer<typeof updateConstructionBannerSchema>;
 export type ConstructionBanner = typeof constructionBanner.$inferSelect;
-
-// Note: seed_log and session tables are created/managed at runtime via raw SQL
-// They are not included in the Drizzle schema to avoid migration conflicts

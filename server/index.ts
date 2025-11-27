@@ -1,10 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import pgSession from "connect-pg-simple";
-import { pool, startPoolKeepalive } from "./db";
+import { pool } from "./db";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { seedDatabase } from "./seed";
 
 const app = express();
 
@@ -81,23 +80,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Health check endpoints - respond immediately for deployment health checks
-  // Both / and /health should respond fast for Replit deployment
-  app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok" });
-  });
-  
-  // Make / respond with 200 OK immediately for health checks
-  // Replit deployment health check will hit / and needs 200 OK
-  // If it's a browser request (has text/html accept), we still serve the app via static middleware
-  app.head("/", (_req, res) => {
-    res.status(200).end();
-  });
-  
-  // Register API routes FIRST (before the catch-all from setupVite/serveStatic)
   const server = await registerRoutes(app);
 
-  // Error handler should be added before catch-all routes
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -106,8 +90,9 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Setup static file serving or Vite AFTER API routes
-  // This ensures API routes are matched first, then catch-all for front-end
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
@@ -119,24 +104,11 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  
-  // Start the server
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
-    // Start keepalive to prevent process exit in production
-    startPoolKeepalive();
-  });
-  
-  // Seed database AFTER server starts listening
-  // This ensures health checks pass during initialization
-  // Fire-and-forget - seed in background without blocking
-  setImmediate(() => {
-    seedDatabase().catch(err => {
-      console.error("Error seeding database:", err);
-    });
   });
 })();
