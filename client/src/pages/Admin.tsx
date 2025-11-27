@@ -46,7 +46,16 @@ export default function Admin() {
           title: "Login successful",
           description: "Welcome to the admin dashboard",
         });
-        setLocation("/admin/dashboard");
+        // Wait a moment for session to be established, then redirect
+        setTimeout(() => {
+          setLocation("/admin/dashboard");
+        }, 100);
+      } else {
+        toast({
+          title: "Login failed",
+          description: data.message || "Invalid password",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       toast({
