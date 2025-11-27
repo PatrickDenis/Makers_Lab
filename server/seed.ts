@@ -150,55 +150,47 @@ const initialTestimonials = [
   }
 ];
 
-async function seed() {
+export async function seedDatabase() {
   try {
-    console.log("Seeding database...");
+    console.log("Checking database for initial content...");
     
     const existingServices = await db.select().from(services);
     if (existingServices.length === 0) {
       await db.insert(services).values(initialServices);
       console.log("Services seeded!");
-    } else {
-      console.log("Services already seeded, skipping...");
     }
     
     const existingProjects = await db.select().from(projects);
     if (existingProjects.length === 0) {
       await db.insert(projects).values(initialProjects);
       console.log("Projects seeded!");
-    } else {
-      console.log("Projects already seeded, skipping...");
     }
     
     const existingEquipment = await db.select().from(equipment);
     if (existingEquipment.length === 0) {
       await db.insert(equipment).values(initialEquipment);
       console.log("Equipment seeded!");
-    } else {
-      console.log("Equipment already seeded, skipping...");
     }
     
     const existingProcessSteps = await db.select().from(processSteps);
     if (existingProcessSteps.length === 0) {
       await db.insert(processSteps).values(initialProcessSteps);
       console.log("Process steps seeded!");
-    } else {
-      console.log("Process steps already seeded, skipping...");
     }
     
     const existingTestimonials = await db.select().from(testimonials);
     if (existingTestimonials.length === 0) {
       await db.insert(testimonials).values(initialTestimonials);
       console.log("Testimonials seeded!");
-    } else {
-      console.log("Testimonials already seeded, skipping...");
     }
     
-    console.log("Database seeding complete!");
+    console.log("Database ready!");
   } catch (error) {
     console.error("Error seeding database:", error);
-    throw error;
   }
 }
 
-seed().then(() => process.exit(0)).catch(() => process.exit(1));
+// Allow running directly with: npx tsx server/seed.ts
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedDatabase().then(() => process.exit(0)).catch(() => process.exit(1));
+}
