@@ -87,16 +87,11 @@ app.use((req, res, next) => {
     res.status(200).json({ status: "ok" });
   });
   
-  // Also make / respond quickly with 200 before static serving
-  // This works as a fallback if Replit health check is set to /
-  app.get("/", (_req, res, next) => {
-    // Check if this is a health check (no accept header for HTML)
-    const acceptHeader = _req.get("accept") || "";
-    if (!acceptHeader.includes("text/html") && !acceptHeader.includes("*/*")) {
-      return res.status(200).json({ status: "ok" });
-    }
-    // Otherwise, let it fall through to static serving
-    next();
+  // Make / respond with 200 OK immediately for health checks
+  // Replit deployment health check will hit / and needs 200 OK
+  // If it's a browser request (has text/html accept), we still serve the app via static middleware
+  app.head("/", (_req, res) => {
+    res.status(200).end();
   });
   
   // Register API routes FIRST (before the catch-all from setupVite/serveStatic)
