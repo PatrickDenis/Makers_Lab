@@ -18,10 +18,28 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import path from "path";
+import fs from "fs";
+import { randomUUID } from "crypto";
+
+const uploadDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `${randomUUID()}${ext}`;
+    cb(null, filename);
+  }
+});
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: fileStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -32,7 +50,8 @@ const upload = multer({
   }
 });
 
-console.log("Using Object Storage for file uploads");
+// Use local file uploads - works both on Replit preview and local hosting
+console.log("Using local file uploads");
 
 if (!process.env.ADMIN_PASSWORD) {
   throw new Error("ADMIN_PASSWORD environment variable is required");
@@ -168,61 +187,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Image upload endpoint - uses Object Storage for persistence across deployments
+  // Image Upload Routes - uses local file storage
+  // Works on Replit preview and when hosting locally
   app.post("/api/upload", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
       
-      const objectStorageService = new ObjectStorageService();
-      
-      // Get file extension from original filename
-      const originalName = req.file.originalname;
-      const ext = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')) : '';
-      
-      // Get presigned upload URL with extension
-      const uploadURL = await objectStorageService.getObjectEntityUploadURLWithExtension(ext);
-      
-      // Upload file to Object Storage using presigned URL
-      const uploadResponse = await fetch(uploadURL, {
-        method: 'PUT',
-        body: req.file.buffer,
-        headers: {
-          'Content-Type': req.file.mimetype,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error("Upload to Object Storage failed:", uploadResponse.status, errorText);
-        throw new Error(`Upload failed: ${uploadResponse.status}`);
-      }
-
-      // Extract the object path from the upload URL
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-      console.log("Image uploaded successfully:", objectPath);
-      
-      res.json({ success: true, imageUrl: objectPath });
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ success: true, imageUrl });
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
-  // Serve objects from Object Storage
-  app.get("/objects/*", async (req, res) => {
-    try {
-      const objectStorageService = new ObjectStorageService();
-      // req.path is the full path like /objects/uploads/uuid.jpg
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      await objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.status(404).json({ error: "File not found" });
-      }
-      res.status(500).json({ error: "Failed to serve file" });
+  // Serve uploaded files from local storage
+  app.use("/uploads", (req, res, next) => {
+    const filePath = path.join(uploadDir, req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).json({ error: "File not found" });
     }
   });
 
