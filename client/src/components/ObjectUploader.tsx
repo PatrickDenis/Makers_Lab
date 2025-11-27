@@ -110,7 +110,7 @@ export function ImageUploader({
         {buttonText}
       </Button>
 
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload Image</DialogTitle>
