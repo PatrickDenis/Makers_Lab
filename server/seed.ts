@@ -1,5 +1,4 @@
-import { db, pool } from "./db";
-import { eq } from "drizzle-orm";
+import { db } from "./db";
 import { services, projects, equipment, processSteps, testimonials } from "@shared/schema";
 
 const initialServices = [
@@ -155,58 +154,39 @@ export async function seedDatabase() {
   try {
     console.log("Checking database for initial content...");
     
-    // Create seed_log table if it doesn't exist
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS seed_log (
-        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-        seeded_at TIMESTAMP DEFAULT NOW() NOT NULL
-      )
-    `);
-    
-    // Check if already seeded
-    const seedResult = await pool.query("SELECT * FROM seed_log LIMIT 1");
-    if (seedResult.rows.length > 0) {
-      console.log("Database already seeded, skipping...");
+    // Check if services exist - simple check without raw SQL
+    const existingServices = await db.select().from(services).limit(1);
+    if (existingServices.length > 0) {
+      console.log("Database already has content, skipping seed...");
       return;
     }
     
-    // Mark as seeded first
-    await pool.query("INSERT INTO seed_log (id) VALUES (gen_random_uuid())");
-    console.log("Starting initial seed...");
+    console.log("Starting database seed...");
     
-    const existingServices = await db.select().from(services);
-    if (existingServices.length === 0) {
-      await db.insert(services).values(initialServices);
-      console.log("Services seeded!");
-    }
+    // Seed services
+    await db.insert(services).values(initialServices);
+    console.log("✓ Services seeded!");
     
-    const existingProjects = await db.select().from(projects);
-    if (existingProjects.length === 0) {
-      await db.insert(projects).values(initialProjects);
-      console.log("Projects seeded!");
-    }
+    // Seed projects
+    await db.insert(projects).values(initialProjects);
+    console.log("✓ Projects seeded!");
     
-    const existingEquipment = await db.select().from(equipment);
-    if (existingEquipment.length === 0) {
-      await db.insert(equipment).values(initialEquipment);
-      console.log("Equipment seeded!");
-    }
+    // Seed equipment
+    await db.insert(equipment).values(initialEquipment);
+    console.log("✓ Equipment seeded!");
     
-    const existingProcessSteps = await db.select().from(processSteps);
-    if (existingProcessSteps.length === 0) {
-      await db.insert(processSteps).values(initialProcessSteps);
-      console.log("Process steps seeded!");
-    }
+    // Seed process steps
+    await db.insert(processSteps).values(initialProcessSteps);
+    console.log("✓ Process steps seeded!");
     
-    const existingTestimonials = await db.select().from(testimonials);
-    if (existingTestimonials.length === 0) {
-      await db.insert(testimonials).values(initialTestimonials);
-      console.log("Testimonials seeded!");
-    }
+    // Seed testimonials
+    await db.insert(testimonials).values(initialTestimonials);
+    console.log("✓ Testimonials seeded!");
     
-    console.log("Database seeding complete!");
+    console.log("✓ Database seeding complete!");
   } catch (error) {
     console.error("Error seeding database:", error);
+    // Don't throw - let the app continue even if seed fails
   }
 }
 

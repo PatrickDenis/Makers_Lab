@@ -1,0 +1,176 @@
+2025-11-27 11:00:07.15
+e8e7b4fe
+System
+main done, exiting
+2025-11-27 11:00:21.94
+e8e7b4fe
+System
+starting up user application
+2025-11-27 11:00:21.94
+e8e7b4fe
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-11-27 11:00:21.94
+e8e7b4fe
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-11-27 11:00:24.30
+e8e7b4fe
+User
+> rest-express@1.0.0 start
+2025-11-27 11:00:24.30
+e8e7b4fe
+User
+> NODE_ENV=production node dist/index.js
+2025-11-27 11:00:25.80
+e8e7b4fe
+User
+Using local file uploads
+2025-11-27 11:00:25.80
+e8e7b4fe
+User
+Checking database for initial content...
+2025-11-27 11:00:25.98
+e8e7b4fe
+User
+4:00:25 PM [express] serving on port 5000
+2025-11-27 11:00:25.99
+e8e7b4fe
+User
+Checking database for initial content...
+2025-11-27 11:00:26.17
+e8e7b4fe
+User
+Database already seeded, skipping...
+2025-11-27 11:00:26.20
+e8e7b4fe
+User
+npm notice
+2025-11-27 11:00:26.20
+e8e7b4fe
+User
+npm notice
+2025-11-27 11:00:26.20
+e8e7b4fe
+User
+npm notice To update run: npm install -g npm@11.6.4
+2025-11-27 11:00:26.20
+e8e7b4fe
+User
+npm notice New major version of npm available! 10.8.2 -> 11.6.4
+2025-11-27 11:00:26.20
+e8e7b4fe
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.4
+2025-11-27 11:00:26.22
+e8e7b4fe
+System
+command finished successfully with exit code 0
+2025-11-27 11:00:26.22
+e8e7b4fe
+System
+main done, exiting
+2025-11-27 11:00:42.12
+e8e7b4fe
+System
+starting up user application
+2025-11-27 11:00:42.12
+e8e7b4fe
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-11-27 11:00:42.12
+e8e7b4fe
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-11-27 11:00:43.74
+e8e7b4fe
+User
+> rest-express@1.0.0 start
+2025-11-27 11:00:43.74
+e8e7b4fe
+User
+> NODE_ENV=production node dist/index.js
+2025-11-27 11:00:44.85
+e8e7b4fe
+User
+Using local file uploads
+2025-11-27 11:00:44.86
+e8e7b4fe
+User
+Checking database for initial content...
+2025-11-27 11:00:45.01
+e8e7b4fe
+User
+4:00:44 PM [express] serving on port 5000
+2025-11-27 11:00:45.01
+e8e7b4fe
+User
+Checking database for initial content...
+2025-11-27 11:00:45.20
+e8e7b4fe
+User
+Database already seeded, skipping...
+2025-11-27 11:00:45.21
+e8e7b4fe
+User
+npm notice To update run: npm install -g npm@11.6.4
+2025-11-27 11:00:45.21
+e8e7b4fe
+User
+npm notice
+2025-11-27 11:00:45.21
+e8e7b4fe
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.4
+2025-11-27 11:00:45.21
+e8e7b4fe
+User
+npm notice New major version of npm available! 10.8.2 -> 11.6.4
+2025-11-27 11:00:45.21
+e8e7b4fe
+User
+npm notice
+2025-11-27 11:00:45.23
+e8e7b4fe
+System
+main done, exiting
+2025-11-27 11:00:45.23
+e8e7b4fe
+System
+command finished successfully with exit code 0
+2025-11-27 11:01:00.40
+06a3f9f9
+System
+starting up user application
+2025-11-27 11:01:00.40
+06a3f9f9
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-11-27 11:01:00.40
+06a3f9f9
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-11-27 11:01:01.86
+06a3f9f9
+User
+> NODE_ENV=production node dist/index.js
+2025-11-27 11:01:01.86
+06a3f9f9
+User
+> rest-express@1.0.0 start
+2025-11-27 11:01:02.79
+06a3f9f9
+User
+Using local file uploads
+2025-11-27 11:01:02.80
+06a3f9f9
+User
+Checking database for initial content...
+2025-11-27 11:01:02.94
+06a3f9f9
+User
+4:01:02 PM [express] serving on port 5000
+2025-11-27 11:01:02.95
+06a3f9f9
+User
+Checking database for initial content...
