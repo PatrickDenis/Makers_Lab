@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, json, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -187,5 +187,17 @@ export type InsertConstructionBanner = z.infer<typeof insertConstructionBannerSc
 export type UpdateConstructionBanner = z.infer<typeof updateConstructionBannerSchema>;
 export type ConstructionBanner = typeof constructionBanner.$inferSelect;
 
-// Note: seed_log table is created at runtime via raw SQL in seed.ts
-// Note: session table is managed by connect-pg-simple, not Drizzle
+// seed_log table for tracking database seeding
+export const seedLog = pgTable("seed_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  seededAt: timestamp("seeded_at").defaultNow().notNull(),
+});
+
+// Session table managed by connect-pg-simple - must match exactly what it creates
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+}, (table) => [
+  index("IDX_session_expire").on(table.expire),
+]);
