@@ -1,6 +1,6 @@
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq } from "drizzle-orm";
-import { services, projects, equipment, processSteps, testimonials, seedLog } from "@shared/schema";
+import { services, projects, equipment, processSteps, testimonials } from "@shared/schema";
 
 const initialServices = [
   {
@@ -219,15 +219,23 @@ export async function seedDatabase() {
     // Always cleanup duplicates first
     await cleanupDuplicates();
     
+    // Create seed_log table if it doesn't exist (using raw SQL to avoid migration issues)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS seed_log (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        seeded_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+    
     // Check if already seeded using seed_log table
-    const existingSeedLog = await db.select().from(seedLog);
-    if (existingSeedLog.length > 0) {
+    const seedResult = await pool.query("SELECT * FROM seed_log LIMIT 1");
+    if (seedResult.rows.length > 0) {
       console.log("Database already seeded, skipping...");
       return;
     }
     
     // Mark as seeded FIRST to prevent race conditions with multiple instances
-    await db.insert(seedLog).values({});
+    await pool.query("INSERT INTO seed_log (id) VALUES (gen_random_uuid())");
     console.log("Starting initial seed...");
     
     const existingServices = await db.select().from(services);
