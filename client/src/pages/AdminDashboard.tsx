@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Plus, Edit2, Trash2, LogOut } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, LogOut, Upload, Image as ImageIcon } from "lucide-react";
 import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
+import { ImageUploader } from "@/components/ObjectUploader";
 import {
   Dialog,
   DialogContent,
@@ -1156,15 +1157,40 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <Label htmlFor="imageUrl">Image URL (optional)</Label>
-              <Input
-                id="imageUrl"
-                value={serviceFormData.imageUrl}
-                onChange={(e) => setServiceFormData({ ...serviceFormData, imageUrl: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                data-testid="input-service-image"
-                className="mt-2"
-              />
+              <Label htmlFor="imageUrl">Service Image (optional)</Label>
+              <div className="mt-2 space-y-3">
+                {serviceFormData.imageUrl && (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden border">
+                    <img
+                      src={serviceFormData.imageUrl}
+                      alt="Service preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2 items-center">
+                  <ImageUploader
+                    currentImageUrl={serviceFormData.imageUrl}
+                    onUploadComplete={(url) => setServiceFormData({ ...serviceFormData, imageUrl: url })}
+                    buttonText="Upload Image"
+                  />
+                  <span className="text-sm text-muted-foreground">or</span>
+                  <Input
+                    id="imageUrl"
+                    value={serviceFormData.imageUrl}
+                    onChange={(e) => setServiceFormData({ ...serviceFormData, imageUrl: e.target.value })}
+                    placeholder="Enter image URL"
+                    data-testid="input-service-image"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload an image or enter a URL directly
+                </p>
+              </div>
             </div>
 
             <div>
@@ -1322,16 +1348,40 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <Label htmlFor="project-imageUrl">Image URL *</Label>
-              <Input
-                id="project-imageUrl"
-                value={projectFormData.imageUrl}
-                onChange={(e) => setProjectFormData({ ...projectFormData, imageUrl: e.target.value })}
-                placeholder="/attached_assets/generated_images/image.png"
-                required
-                data-testid="input-project-image"
-                className="mt-2"
-              />
+              <Label htmlFor="project-imageUrl">Project Image *</Label>
+              <div className="mt-2 space-y-3">
+                {projectFormData.imageUrl && (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden border">
+                    <img
+                      src={projectFormData.imageUrl}
+                      alt="Project preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2 items-center">
+                  <ImageUploader
+                    currentImageUrl={projectFormData.imageUrl}
+                    onUploadComplete={(url) => setProjectFormData({ ...projectFormData, imageUrl: url })}
+                    buttonText="Upload Image"
+                  />
+                  <span className="text-sm text-muted-foreground">or</span>
+                  <Input
+                    id="project-imageUrl"
+                    value={projectFormData.imageUrl}
+                    onChange={(e) => setProjectFormData({ ...projectFormData, imageUrl: e.target.value })}
+                    placeholder="Enter image URL"
+                    data-testid="input-project-image"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload an image or enter a URL directly
+                </p>
+              </div>
             </div>
 
             <div>
