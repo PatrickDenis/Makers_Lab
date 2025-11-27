@@ -151,6 +151,15 @@ const initialTestimonials = [
   }
 ];
 
+async function migrateImageUrls() {
+  // Fix old image URLs that pointed to attached_assets
+  await pool.query(`
+    UPDATE projects 
+    SET image_url = REPLACE(image_url, '/attached_assets/generated_images/', '/seed-images/') 
+    WHERE image_url LIKE '/attached_assets/generated_images/%'
+  `);
+}
+
 async function cleanupDuplicates() {
   console.log("Cleaning up any duplicate entries...");
   
@@ -216,7 +225,10 @@ export async function seedDatabase() {
   try {
     console.log("Checking database for initial content...");
     
-    // Always cleanup duplicates first
+    // Migrate any old image URLs first
+    await migrateImageUrls();
+    
+    // Always cleanup duplicates
     await cleanupDuplicates();
     
     // Create seed_log table if it doesn't exist (using raw SQL to avoid migration issues)
