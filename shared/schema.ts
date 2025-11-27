@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -162,3 +162,25 @@ export const updateTestimonialSchema = insertTestimonialSchema.partial();
 export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
 export type UpdateTestimonial = z.infer<typeof updateTestimonialSchema>;
 export type Testimonial = typeof testimonials.$inferSelect;
+
+export const constructionBanner = pgTable("construction_banner", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  enabled: boolean("enabled").notNull().default(false),
+  title: text("title").notNull().default("Site Under Construction"),
+  subtitle: text("subtitle").notNull().default("We're making some improvements to serve you better!"),
+  startDate: text("start_date").notNull().default(""),
+  endDate: text("end_date").notNull().default(""),
+  message: text("message").notNull().default("Some features may be temporarily unavailable during this time. We appreciate your patience."),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertConstructionBannerSchema = createInsertSchema(constructionBanner).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const updateConstructionBannerSchema = insertConstructionBannerSchema.partial();
+
+export type InsertConstructionBanner = z.infer<typeof insertConstructionBannerSchema>;
+export type UpdateConstructionBanner = z.infer<typeof updateConstructionBannerSchema>;
+export type ConstructionBanner = typeof constructionBanner.$inferSelect;

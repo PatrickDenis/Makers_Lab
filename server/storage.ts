@@ -20,6 +20,8 @@ import {
   type Testimonial,
   type InsertTestimonial,
   type UpdateTestimonial,
+  type ConstructionBanner,
+  type UpdateConstructionBanner,
   users,
   contactSubmissions,
   newsletterSignups,
@@ -27,7 +29,8 @@ import {
   projects,
   equipment,
   processSteps,
-  testimonials
+  testimonials,
+  constructionBanner
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -72,6 +75,9 @@ export interface IStorage {
   createTestimonial(testimonial: InsertTestimonial): Promise<Testimonial>;
   updateTestimonial(id: string, testimonial: UpdateTestimonial): Promise<Testimonial | undefined>;
   deleteTestimonial(id: string): Promise<void>;
+
+  getConstructionBanner(): Promise<ConstructionBanner | undefined>;
+  upsertConstructionBanner(banner: UpdateConstructionBanner): Promise<ConstructionBanner>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -293,6 +299,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTestimonial(id: string): Promise<void> {
     await db.delete(testimonials).where(eq(testimonials.id, id));
+  }
+
+  async getConstructionBanner(): Promise<ConstructionBanner | undefined> {
+    const [banner] = await db.select().from(constructionBanner);
+    return banner || undefined;
+  }
+
+  async upsertConstructionBanner(updateBanner: UpdateConstructionBanner): Promise<ConstructionBanner> {
+    const existing = await this.getConstructionBanner();
+    
+    if (existing) {
+      const [banner] = await db
+        .update(constructionBanner)
+        .set({ ...updateBanner, updatedAt: new Date() })
+        .where(eq(constructionBanner.id, existing.id))
+        .returning();
+      return banner;
+    } else {
+      const [banner] = await db
+        .insert(constructionBanner)
+        .values({
+          enabled: updateBanner.enabled ?? false,
+          title: updateBanner.title ?? "Site Under Construction",
+          subtitle: updateBanner.subtitle ?? "We're making some improvements to serve you better!",
+          startDate: updateBanner.startDate ?? "",
+          endDate: updateBanner.endDate ?? "",
+          message: updateBanner.message ?? "Some features may be temporarily unavailable during this time. We appreciate your patience.",
+        })
+        .returning();
+      return banner;
+    }
   }
 }
 
