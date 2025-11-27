@@ -616,8 +616,13 @@ export default function AdminDashboard() {
 
   const addProjectTag = () => {
     const tag = newTagInput.trim();
-    if (tag && !projectFormData.tags.includes(tag)) {
-      setProjectFormData({ ...projectFormData, tags: [...projectFormData.tags, tag] });
+    if (tag) {
+      setProjectFormData(prev => {
+        if (prev.tags.includes(tag)) {
+          return prev;
+        }
+        return { ...prev, tags: [...prev.tags, tag] };
+      });
       setNewTagInput("");
     }
   };
