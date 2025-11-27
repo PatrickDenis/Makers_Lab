@@ -85,31 +85,11 @@ app.use((req, res, next) => {
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok" });
   });
+  
+  // Register API routes FIRST (before the catch-all from setupVite/serveStatic)
+  const server = await registerRoutes(app);
 
-  // Setup static file serving or Vite BEFORE registering API routes
-  // This ensures the root '/' endpoint responds immediately for health checks
-  // Static middleware has higher priority in Express middleware chain
-  let server: any;
-  if (app.get("env") === "development") {
-    // In development, setupVite needs to be called before we create the server
-    // We'll create a temporary server just to pass to setupVite
-    const { createServer: createHttpServer } = await import("http");
-    const tempServer = createHttpServer(app);
-    await setupVite(app, tempServer);
-    server = tempServer;
-  } else {
-    // In production, setup static serving first
-    serveStatic(app);
-    // Then register routes which will create the server
-    server = await registerRoutes(app);
-  }
-
-  // For development, also register routes after setupVite
-  if (app.get("env") === "development") {
-    await registerRoutes(app);
-  }
-
-  // Error handler should be last
+  // Error handler should be added before catch-all routes
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -117,6 +97,14 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
+
+  // Setup static file serving or Vite AFTER API routes
+  // This ensures API routes are matched first, then catch-all for front-end
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
