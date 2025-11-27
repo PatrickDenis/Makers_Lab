@@ -18,28 +18,10 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { randomUUID } from "crypto";
-
-const uploadDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const fileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const filename = `${randomUUID()}${ext}`;
-    cb(null, filename);
-  }
-});
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 const upload = multer({
-  storage: fileStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -50,8 +32,7 @@ const upload = multer({
   }
 });
 
-// Use local file uploads - works both on Replit preview and local hosting
-console.log("Using local file uploads");
+console.log("Using Object Storage for file uploads");
 
 if (!process.env.ADMIN_PASSWORD) {
   throw new Error("ADMIN_PASSWORD environment variable is required");
@@ -187,29 +168,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Image Upload Routes - uses local file storage
-  // Works on Replit preview and when hosting locally
+  // Object Storage - get presigned upload URL
+  app.post("/api/objects/upload", requireAdmin, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Legacy upload endpoint - now uses Object Storage presigned URL
   app.post("/api/upload", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
       
-      const imageUrl = `/uploads/${req.file.filename}`;
-      res.json({ success: true, imageUrl });
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      
+      // Upload file to Object Storage using presigned URL
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: req.file.buffer,
+        headers: {
+          'Content-Type': req.file.mimetype,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status}`);
+      }
+
+      // Extract the object path from the upload URL
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      
+      res.json({ success: true, imageUrl: objectPath });
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
-  // Serve uploaded files from local storage
-  app.use("/uploads", (req, res, next) => {
-    const filePath = path.join(uploadDir, req.path);
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-    } else {
-      res.status(404).json({ error: "File not found" });
+  // Serve objects from Object Storage
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      res.status(500).json({ error: "Failed to serve file" });
     }
   });
 
