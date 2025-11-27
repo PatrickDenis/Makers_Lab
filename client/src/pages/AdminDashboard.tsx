@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Plus, Edit2, Trash2, LogOut, Upload, Image as ImageIcon, Download, Mail, MessageSquare, User, Phone, DollarSign, Clock } from "lucide-react";
-import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner, NewsletterSignup, ContactSubmission } from "@shared/schema";
+import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner, NewsletterSignup, ContactSubmission, ContactSection, ContactCard } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { ImageUploader } from "@/components/ObjectUploader";
 import {
@@ -88,6 +88,23 @@ export default function AdminDashboard() {
     message: "Some features may be temporarily unavailable during this time. We appreciate your patience."
   });
 
+  const [contactSectionFormData, setContactSectionFormData] = useState({
+    heading: "Get in Touch",
+    description: "Ready to start your project? Fill out the form below for a free quote",
+    ctaText: "Request Quote",
+    responseNote: "We typically respond to quote requests within 24 hours during business days."
+  });
+
+  const [isContactCardDialogOpen, setIsContactCardDialogOpen] = useState(false);
+  const [editingContactCard, setEditingContactCard] = useState<ContactCard | null>(null);
+  const [contactCardFormData, setContactCardFormData] = useState({
+    cardType: "",
+    title: "",
+    content: "",
+    icon: "",
+    order: "0"
+  });
+
   const { data: authData, isLoading: isCheckingAuth } = useQuery<{ isAuthenticated: boolean }>({
     queryKey: ["/api/admin/check"],
   });
@@ -124,8 +141,17 @@ export default function AdminDashboard() {
     queryKey: ["/api/contact"],
   });
 
+  const { data: contactSectionData, isLoading: isLoadingContactSection } = useQuery<{ success: boolean; section: ContactSection | null }>({
+    queryKey: ["/api/contact-section"],
+  });
+
+  const { data: contactCardsData, isLoading: isLoadingContactCards } = useQuery<{ success: boolean; cards: ContactCard[] }>({
+    queryKey: ["/api/contact-cards"],
+  });
+
   const newsletterSignups = newsletterData?.signups || [];
   const contactSubmissions = contactsData?.submissions || [];
+  const contactCards = contactCardsData?.cards || [];
 
   const exportNewsletterToCSV = () => {
     if (newsletterSignups.length === 0) {
@@ -224,6 +250,17 @@ export default function AdminDashboard() {
       });
     }
   }, [bannerData]);
+
+  useEffect(() => {
+    if (contactSectionData?.section) {
+      setContactSectionFormData({
+        heading: contactSectionData.section.heading,
+        description: contactSectionData.section.description,
+        ctaText: contactSectionData.section.ctaText,
+        responseNote: contactSectionData.section.responseNote,
+      });
+    }
+  }, [contactSectionData]);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -499,6 +536,74 @@ export default function AdminDashboard() {
     updateBannerMutation.mutate(bannerFormData);
   };
 
+  // Contact Section Mutation
+  const updateContactSectionMutation = useMutation({
+    mutationFn: async (data: typeof contactSectionFormData) => {
+      const res = await apiRequest("PUT", "/api/contact-section", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contact-section"] });
+      toast({ title: "Contact section updated", description: "The contact section settings have been saved" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update contact section", variant: "destructive" });
+    },
+  });
+
+  const handleContactSectionSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateContactSectionMutation.mutate(contactSectionFormData);
+  };
+
+  // Contact Card Mutations
+  const createContactCardMutation = useMutation({
+    mutationFn: async (data: typeof contactCardFormData) => {
+      const res = await apiRequest("POST", "/api/contact-cards", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contact-cards"] });
+      toast({ title: "Contact card created", description: "The contact card has been created successfully" });
+      resetContactCardForm();
+      setIsContactCardDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create contact card", variant: "destructive" });
+    },
+  });
+
+  const updateContactCardMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof contactCardFormData }) => {
+      const res = await apiRequest("PUT", `/api/contact-cards/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contact-cards"] });
+      toast({ title: "Contact card updated", description: "The contact card has been updated successfully" });
+      resetContactCardForm();
+      setIsContactCardDialogOpen(false);
+      setEditingContactCard(null);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update contact card", variant: "destructive" });
+    },
+  });
+
+  const deleteContactCardMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/contact-cards/${id}`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contact-cards"] });
+      toast({ title: "Contact card deleted", description: "The contact card has been deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete contact card", variant: "destructive" });
+    },
+  });
+
   // Form reset functions
   const resetServiceForm = () => {
     setServiceFormData({ title: "", description: "", icon: "", imageUrl: "", order: "0" });
@@ -527,6 +632,10 @@ export default function AdminDashboard() {
 
   const resetTestimonialForm = () => {
     setTestimonialFormData({ quote: "", author: "", company: "", project: "", avatarUrl: "", order: "0" });
+  };
+
+  const resetContactCardForm = () => {
+    setContactCardFormData({ cardType: "", title: "", content: "", icon: "", order: "0" });
   };
 
   // Edit handlers
@@ -590,6 +699,18 @@ export default function AdminDashboard() {
     setIsTestimonialDialogOpen(true);
   };
 
+  const handleEditContactCard = (card: ContactCard) => {
+    setEditingContactCard(card);
+    setContactCardFormData({
+      cardType: card.cardType,
+      title: card.title,
+      content: card.content,
+      icon: card.icon,
+      order: card.order
+    });
+    setIsContactCardDialogOpen(true);
+  };
+
   // Submit handlers
   const handleServiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -633,6 +754,15 @@ export default function AdminDashboard() {
       updateTestimonialMutation.mutate({ id: editingTestimonial.id, data: testimonialFormData });
     } else {
       createTestimonialMutation.mutate(testimonialFormData);
+    }
+  };
+
+  const handleContactCardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingContactCard) {
+      updateContactCardMutation.mutate({ id: editingContactCard.id, data: contactCardFormData });
+    } else {
+      createContactCardMutation.mutate(contactCardFormData);
     }
   };
 
@@ -681,7 +811,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="grid w-full grid-cols-8 mb-8">
+          <TabsList className="grid w-full grid-cols-9 mb-8">
             <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
             <TabsTrigger value="projects" data-testid="tab-projects">Projects</TabsTrigger>
             <TabsTrigger value="equipment" data-testid="tab-equipment">Equipment</TabsTrigger>
@@ -690,6 +820,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="banner" data-testid="tab-banner">Banner</TabsTrigger>
             <TabsTrigger value="newsletter" data-testid="tab-newsletter">Newsletter</TabsTrigger>
             <TabsTrigger value="contacts" data-testid="tab-contacts">Contacts</TabsTrigger>
+            <TabsTrigger value="contact-content" data-testid="tab-contact-content">Contact Info</TabsTrigger>
           </TabsList>
 
           {/* Services Tab */}
@@ -1348,6 +1479,174 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               )}
+            </div>
+          </TabsContent>
+
+          {/* Contact Content Tab */}
+          <TabsContent value="contact-content">
+            <div className="mb-8">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold mb-2">Contact Section Content</h2>
+                <p className="text-muted-foreground">
+                  Customize the contact section heading, description, and info boxes displayed on the website
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Section Settings */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Section Settings</h3>
+                  {isLoadingContactSection ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <Card className="p-6">
+                      <form onSubmit={handleContactSectionSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="contact-heading">Section Heading</Label>
+                          <Input
+                            id="contact-heading"
+                            value={contactSectionFormData.heading}
+                            onChange={(e) => setContactSectionFormData({ ...contactSectionFormData, heading: e.target.value })}
+                            placeholder="Get in Touch"
+                            data-testid="input-contact-heading"
+                            className="mt-2"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="contact-description">Section Description</Label>
+                          <Textarea
+                            id="contact-description"
+                            value={contactSectionFormData.description}
+                            onChange={(e) => setContactSectionFormData({ ...contactSectionFormData, description: e.target.value })}
+                            placeholder="Ready to start your project? Fill out the form below for a free quote"
+                            data-testid="textarea-contact-description"
+                            className="mt-2 min-h-20"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="contact-cta">Button Text</Label>
+                          <Input
+                            id="contact-cta"
+                            value={contactSectionFormData.ctaText}
+                            onChange={(e) => setContactSectionFormData({ ...contactSectionFormData, ctaText: e.target.value })}
+                            placeholder="Request Quote"
+                            data-testid="input-contact-cta"
+                            className="mt-2"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="contact-response-note">Response Note</Label>
+                          <Textarea
+                            id="contact-response-note"
+                            value={contactSectionFormData.responseNote}
+                            onChange={(e) => setContactSectionFormData({ ...contactSectionFormData, responseNote: e.target.value })}
+                            placeholder="We typically respond within 24 hours..."
+                            data-testid="textarea-contact-response"
+                            className="mt-2 min-h-16"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Displayed in the highlighted card below the contact info
+                          </p>
+                        </div>
+
+                        <Button 
+                          type="submit" 
+                          disabled={updateContactSectionMutation.isPending}
+                          data-testid="button-save-contact-section"
+                          className="w-full"
+                        >
+                          {updateContactSectionMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save Section Settings"
+                          )}
+                        </Button>
+                      </form>
+                    </Card>
+                  )}
+                </div>
+
+                {/* Contact Info Cards */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-semibold">Contact Info Cards</h3>
+                    <Button 
+                      onClick={() => { resetContactCardForm(); setEditingContactCard(null); setIsContactCardDialogOpen(true); }} 
+                      data-testid="button-add-contact-card"
+                      size="sm"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Card
+                    </Button>
+                  </div>
+
+                  {isLoadingContactCards ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                  ) : contactCards.length === 0 ? (
+                    <Card className="p-8 text-center">
+                      <p className="text-muted-foreground mb-4">No contact cards yet</p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Add cards for Location, Phone, Email, Hours, etc.
+                      </p>
+                      <Button onClick={() => { resetContactCardForm(); setEditingContactCard(null); setIsContactCardDialogOpen(true); }}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Your First Card
+                      </Button>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {contactCards.map((card: ContactCard) => (
+                        <Card key={card.id} className="p-4" data-testid={`card-contact-card-${card.id}`}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="secondary">{card.cardType}</Badge>
+                                <span className="text-xs text-muted-foreground">Order: {card.order}</span>
+                              </div>
+                              <h4 className="font-semibold">{card.title}</h4>
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{card.content}</p>
+                              <p className="text-xs text-muted-foreground mt-1">Icon: {card.icon}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleEditContactCard(card)}
+                                data-testid={`button-edit-card-${card.id}`}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm("Are you sure you want to delete this card?")) {
+                                    deleteContactCardMutation.mutate(card.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-card-${card.id}`}
+                                disabled={deleteContactCardMutation.isPending}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -2062,6 +2361,130 @@ export default function AdminDashboard() {
                   "Update Testimonial"
                 ) : (
                   "Create Testimonial"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Card Dialog */}
+      <Dialog open={isContactCardDialogOpen} onOpenChange={setIsContactCardDialogOpen}>
+        <DialogContent className="max-w-lg" data-testid="dialog-edit-contact-card">
+          <DialogHeader>
+            <DialogTitle>
+              {editingContactCard ? "Edit Contact Card" : "Add New Contact Card"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingContactCard ? "Update the contact card details below" : "Create a new contact info card for the contact section"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleContactCardSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="card-type">Card Type *</Label>
+              <Input
+                id="card-type"
+                value={contactCardFormData.cardType}
+                onChange={(e) => setContactCardFormData({ ...contactCardFormData, cardType: e.target.value })}
+                placeholder="location, phone, email, hours"
+                required
+                data-testid="input-card-type"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Examples: location, phone, email, hours
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="card-title">Title *</Label>
+              <Input
+                id="card-title"
+                value={contactCardFormData.title}
+                onChange={(e) => setContactCardFormData({ ...contactCardFormData, title: e.target.value })}
+                placeholder="Location"
+                required
+                data-testid="input-card-title"
+                className="mt-2"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="card-content">Content *</Label>
+              <Textarea
+                id="card-content"
+                value={contactCardFormData.content}
+                onChange={(e) => setContactCardFormData({ ...contactCardFormData, content: e.target.value })}
+                placeholder="123 Industrial Way&#10;Maker City, MC 12345"
+                required
+                data-testid="textarea-card-content"
+                className="mt-2 min-h-20"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use new lines to separate multiple lines of text
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="card-icon">Icon Name *</Label>
+              <Input
+                id="card-icon"
+                value={contactCardFormData.icon}
+                onChange={(e) => setContactCardFormData({ ...contactCardFormData, icon: e.target.value })}
+                placeholder="MapPin"
+                required
+                data-testid="input-card-icon"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use Lucide React icon names (e.g., MapPin, Phone, Mail, Clock)
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="card-order">Display Order *</Label>
+              <Input
+                id="card-order"
+                value={contactCardFormData.order}
+                onChange={(e) => setContactCardFormData({ ...contactCardFormData, order: e.target.value })}
+                placeholder="1"
+                required
+                data-testid="input-card-order"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Lower numbers appear first
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsContactCardDialogOpen(false);
+                  setEditingContactCard(null);
+                  resetContactCardForm();
+                }}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                data-testid="button-save-contact-card"
+                disabled={createContactCardMutation.isPending || updateContactCardMutation.isPending}
+              >
+                {(createContactCardMutation.isPending || updateContactCardMutation.isPending) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : editingContactCard ? (
+                  "Update Card"
+                ) : (
+                  "Create Card"
                 )}
               </Button>
             </DialogFooter>

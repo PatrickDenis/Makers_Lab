@@ -7,9 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { MapPin, Phone, Mail, Clock, Loader2 } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import type { ContactSection, ContactCard } from "@shared/schema";
+
+const iconMap: Record<string, typeof MapPin> = {
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+};
 
 interface ContactFormData {
   name: string;
@@ -23,6 +31,17 @@ export default function Contact() {
   const [budget, setBudget] = useState("");
   const [timeline, setTimeline] = useState("");
   const { toast } = useToast();
+
+  const { data: sectionData } = useQuery<{ success: boolean; section: ContactSection | null }>({
+    queryKey: ["/api/contact-section"],
+  });
+
+  const { data: cardsData, isLoading: isLoadingCards } = useQuery<{ success: boolean; cards: ContactCard[] }>({
+    queryKey: ["/api/contact-cards"],
+  });
+
+  const section = sectionData?.section;
+  const cards = cardsData?.cards || [];
 
   const contactMutation = useMutation({
     mutationFn: async (data: ContactFormData & { budget: string; timeline: string }) => {
@@ -55,13 +74,23 @@ export default function Contact() {
     });
   };
 
+  const getIcon = (iconName: string) => {
+    const IconComponent = iconMap[iconName];
+    if (IconComponent) {
+      return <IconComponent className="w-5 h-5 text-primary" />;
+    }
+    return <MapPin className="w-5 h-5 text-primary" />;
+  };
+
   return (
     <section id="contact" className="py-16 lg:py-24 bg-card">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl lg:text-5xl font-bold mb-4">Get in Touch</h2>
+          <h2 className="text-3xl lg:text-5xl font-bold mb-4">
+            {section?.heading || "Get in Touch"}
+          </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Ready to start your project? Fill out the form below for a free quote
+            {section?.description || "Ready to start your project? Fill out the form below for a free quote"}
           </p>
         </div>
 
@@ -157,70 +186,96 @@ export default function Contact() {
                 data-testid="button-submit-quote"
                 disabled={contactMutation.isPending}
               >
-                {contactMutation.isPending ? "Submitting..." : "Request Quote"}
+                {contactMutation.isPending ? "Submitting..." : (section?.ctaText || "Request Quote")}
               </Button>
             </form>
           </Card>
 
           <div className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base mb-1">Location</h3>
-                  <p className="text-sm text-muted-foreground">
-                    123 Industrial Way<br />
-                    Maker City, MC 12345
-                  </p>
-                </div>
+            {isLoadingCards ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            </Card>
+            ) : cards.length > 0 ? (
+              <>
+                {cards.map((card) => (
+                  <Card key={card.id} className="p-6" data-testid={`card-info-${card.cardType}`}>
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {getIcon(card.icon)}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-base mb-1">{card.title}</h3>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {card.content}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </>
+            ) : (
+              <>
+                <Card className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">Location</h3>
+                      <p className="text-sm text-muted-foreground">
+                        123 Industrial Way<br />
+                        Maker City, MC 12345
+                      </p>
+                    </div>
+                  </div>
+                </Card>
 
-            <Card className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base mb-1">Phone</h3>
-                  <p className="text-sm text-muted-foreground">(555) 123-4567</p>
-                </div>
-              </div>
-            </Card>
+                <Card className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">Phone</h3>
+                      <p className="text-sm text-muted-foreground">(555) 123-4567</p>
+                    </div>
+                  </div>
+                </Card>
 
-            <Card className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base mb-1">Email</h3>
-                  <p className="text-sm text-muted-foreground">info@makerslab.com</p>
-                </div>
-              </div>
-            </Card>
+                <Card className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">Email</h3>
+                      <p className="text-sm text-muted-foreground">info@makerslab.com</p>
+                    </div>
+                  </div>
+                </Card>
 
-            <Card className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-base mb-1">Hours</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Monday - Friday: 8am - 6pm<br />
-                    Saturday: 9am - 2pm<br />
-                    Sunday: Closed
-                  </p>
-                </div>
-              </div>
-            </Card>
+                <Card className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">Hours</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Monday - Friday: 8am - 6pm<br />
+                        Saturday: 9am - 2pm<br />
+                        Sunday: Closed
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </>
+            )}
 
             <Card className="p-6 bg-primary/5 border-primary/20">
               <p className="text-sm font-medium">
-                <span className="text-primary">Fast Response:</span> We typically respond to quote requests within 24 hours during business days.
+                <span className="text-primary">Fast Response:</span> {section?.responseNote || "We typically respond to quote requests within 24 hours during business days."}
               </p>
             </Card>
           </div>

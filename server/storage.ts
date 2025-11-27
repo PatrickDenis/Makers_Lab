@@ -22,6 +22,11 @@ import {
   type UpdateTestimonial,
   type ConstructionBanner,
   type UpdateConstructionBanner,
+  type ContactSection,
+  type UpdateContactSection,
+  type ContactCard,
+  type InsertContactCard,
+  type UpdateContactCard,
   users,
   contactSubmissions,
   newsletterSignups,
@@ -30,7 +35,9 @@ import {
   equipment,
   processSteps,
   testimonials,
-  constructionBanner
+  constructionBanner,
+  contactSection,
+  contactCards
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -78,6 +85,15 @@ export interface IStorage {
 
   getConstructionBanner(): Promise<ConstructionBanner | undefined>;
   upsertConstructionBanner(banner: UpdateConstructionBanner): Promise<ConstructionBanner>;
+
+  getContactSection(): Promise<ContactSection | undefined>;
+  upsertContactSection(section: UpdateContactSection): Promise<ContactSection>;
+  
+  getAllContactCards(): Promise<ContactCard[]>;
+  getContactCard(id: string): Promise<ContactCard | undefined>;
+  createContactCard(card: InsertContactCard): Promise<ContactCard>;
+  updateContactCard(id: string, card: UpdateContactCard): Promise<ContactCard | undefined>;
+  deleteContactCard(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -330,6 +346,68 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return banner;
     }
+  }
+
+  async getContactSection(): Promise<ContactSection | undefined> {
+    const [section] = await db.select().from(contactSection);
+    return section || undefined;
+  }
+
+  async upsertContactSection(updateSection: UpdateContactSection): Promise<ContactSection> {
+    const existing = await this.getContactSection();
+    
+    if (existing) {
+      const [section] = await db
+        .update(contactSection)
+        .set({ ...updateSection, updatedAt: new Date() })
+        .where(eq(contactSection.id, existing.id))
+        .returning();
+      return section;
+    } else {
+      const [section] = await db
+        .insert(contactSection)
+        .values({
+          heading: updateSection.heading ?? "Get in Touch",
+          description: updateSection.description ?? "Ready to start your project? Fill out the form below for a free quote",
+          ctaText: updateSection.ctaText ?? "Request Quote",
+          responseNote: updateSection.responseNote ?? "We typically respond to quote requests within 24 hours during business days.",
+        })
+        .returning();
+      return section;
+    }
+  }
+
+  async getAllContactCards(): Promise<ContactCard[]> {
+    return await db
+      .select()
+      .from(contactCards)
+      .orderBy(contactCards.order);
+  }
+
+  async getContactCard(id: string): Promise<ContactCard | undefined> {
+    const [card] = await db.select().from(contactCards).where(eq(contactCards.id, id));
+    return card || undefined;
+  }
+
+  async createContactCard(insertCard: InsertContactCard): Promise<ContactCard> {
+    const [card] = await db
+      .insert(contactCards)
+      .values(insertCard)
+      .returning();
+    return card;
+  }
+
+  async updateContactCard(id: string, updateCard: UpdateContactCard): Promise<ContactCard | undefined> {
+    const [card] = await db
+      .update(contactCards)
+      .set({ ...updateCard, updatedAt: new Date() })
+      .where(eq(contactCards.id, id))
+      .returning();
+    return card || undefined;
+  }
+
+  async deleteContactCard(id: string): Promise<void> {
+    await db.delete(contactCards).where(eq(contactCards.id, id));
   }
 }
 

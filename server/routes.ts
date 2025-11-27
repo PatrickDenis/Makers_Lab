@@ -14,13 +14,28 @@ import {
   updateProcessStepSchema,
   insertTestimonialSchema,
   updateTestimonialSchema,
-  updateConstructionBannerSchema
+  updateConstructionBannerSchema,
+  updateContactSectionSchema,
+  insertContactCardSchema,
+  updateContactCardSchema
 } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import nodemailer from "nodemailer";
+
+function escapeHtml(text: string): string {
+  const htmlEscapes: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  };
+  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
+}
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -68,6 +83,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertContactSubmissionSchema.parse(req.body);
       const submission = await storage.createContactSubmission(validatedData);
+      
+      // Send email notification
+      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: 'smtp.office365.com',
+            port: 587,
+            secure: false,
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            },
+          });
+
+          const budgetLabels: Record<string, string> = {
+            'under-1k': 'Under $1,000',
+            '1k-5k': '$1,000 - $5,000',
+            '5k-10k': '$5,000 - $10,000',
+            'over-10k': 'Over $10,000',
+          };
+
+          const timelineLabels: Record<string, string> = {
+            'urgent': 'ASAP (Rush)',
+            '1-2weeks': '1-2 weeks',
+            '1month': '1 month',
+            'flexible': 'Flexible',
+          };
+
+          const emailHtml = `
+            <h2>New Quote Request from Makers Lab Website</h2>
+            <p><strong>Name:</strong> ${escapeHtml(submission.name)}</p>
+            <p><strong>Email:</strong> ${escapeHtml(submission.email)}</p>
+            <p><strong>Phone:</strong> ${escapeHtml(submission.phone || 'Not provided')}</p>
+            <p><strong>Budget Range:</strong> ${escapeHtml(budgetLabels[submission.budget || ''] || submission.budget || 'Not specified')}</p>
+            <p><strong>Timeline:</strong> ${escapeHtml(timelineLabels[submission.timeline || ''] || submission.timeline || 'Not specified')}</p>
+            <h3>Project Description:</h3>
+            <p>${escapeHtml(submission.description)}</p>
+            <hr>
+            <p><small>Submitted on ${new Date(submission.createdAt).toLocaleString()}</small></p>
+          `;
+
+          await transporter.sendMail({
+            from: process.env.SMTP_USER,
+            to: 'info@makers-lab.net',
+            subject: `New Quote Request from ${submission.name}`,
+            html: emailHtml,
+          });
+          
+          console.log('Quote request email sent successfully');
+        } catch (emailError) {
+          console.error('Failed to send email notification:', emailError);
+          // Don't fail the request if email fails
+        }
+      } else {
+        console.log('SMTP credentials not configured, skipping email notification');
+      }
+      
       res.json({ 
         success: true, 
         message: "Quote request received successfully",
@@ -457,6 +529,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating construction banner:", error);
       res.status(400).json({ success: false, message: "Failed to update banner settings" });
+    }
+  });
+
+  // Contact Section Routes (public GET, admin PUT)
+  app.get("/api/contact-section", async (req, res) => {
+    try {
+      const section = await storage.getContactSection();
+      res.json({ success: true, section: section || null });
+    } catch (error) {
+      console.error("Error fetching contact section:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch contact section" });
+    }
+  });
+
+  app.put("/api/contact-section", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = updateContactSectionSchema.parse(req.body);
+      const section = await storage.upsertContactSection(validatedData);
+      res.json({ success: true, section });
+    } catch (error) {
+      console.error("Error updating contact section:", error);
+      res.status(400).json({ success: false, message: "Failed to update contact section" });
+    }
+  });
+
+  // Contact Cards Routes
+  app.get("/api/contact-cards", async (req, res) => {
+    try {
+      const cards = await storage.getAllContactCards();
+      res.json({ success: true, cards });
+    } catch (error) {
+      console.error("Error fetching contact cards:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch contact cards" });
+    }
+  });
+
+  app.post("/api/contact-cards", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertContactCardSchema.parse(req.body);
+      const card = await storage.createContactCard(validatedData);
+      res.json({ success: true, card });
+    } catch (error) {
+      console.error("Error creating contact card:", error);
+      res.status(400).json({ success: false, message: "Failed to create contact card" });
+    }
+  });
+
+  app.put("/api/contact-cards/:id", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = updateContactCardSchema.parse(req.body);
+      const card = await storage.updateContactCard(req.params.id, validatedData);
+      if (!card) {
+        return res.status(404).json({ success: false, message: "Contact card not found" });
+      }
+      res.json({ success: true, card });
+    } catch (error) {
+      console.error("Error updating contact card:", error);
+      res.status(400).json({ success: false, message: "Failed to update contact card" });
+    }
+  });
+
+  app.delete("/api/contact-cards/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteContactCard(req.params.id);
+      res.json({ success: true, message: "Contact card deleted" });
+    } catch (error) {
+      console.error("Error deleting contact card:", error);
+      res.status(500).json({ success: false, message: "Failed to delete contact card" });
     }
   });
 

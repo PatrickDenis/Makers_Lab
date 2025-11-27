@@ -186,3 +186,46 @@ export const updateConstructionBannerSchema = insertConstructionBannerSchema.par
 export type InsertConstructionBanner = z.infer<typeof insertConstructionBannerSchema>;
 export type UpdateConstructionBanner = z.infer<typeof updateConstructionBannerSchema>;
 export type ConstructionBanner = typeof constructionBanner.$inferSelect;
+
+export const contactSection = pgTable("contact_section", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  heading: text("heading").notNull().default("Get in Touch"),
+  description: text("description").notNull().default("Ready to start your project? Fill out the form below for a free quote"),
+  ctaText: text("cta_text").notNull().default("Request Quote"),
+  responseNote: text("response_note").notNull().default("We typically respond to quote requests within 24 hours during business days."),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertContactSectionSchema = createInsertSchema(contactSection).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const updateContactSectionSchema = insertContactSectionSchema.partial();
+
+export type InsertContactSection = z.infer<typeof insertContactSectionSchema>;
+export type UpdateContactSection = z.infer<typeof updateContactSectionSchema>;
+export type ContactSection = typeof contactSection.$inferSelect;
+
+export const contactCards = pgTable("contact_cards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cardType: text("card_type").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  icon: text("icon").notNull(),
+  order: text("order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertContactCardSchema = createInsertSchema(contactCards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateContactCardSchema = insertContactCardSchema.partial();
+
+export type InsertContactCard = z.infer<typeof insertContactCardSchema>;
+export type UpdateContactCard = z.infer<typeof updateContactCardSchema>;
+export type ContactCard = typeof contactCards.$inferSelect;
