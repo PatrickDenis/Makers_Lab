@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
-import { Star } from "lucide-react";
+import { Star, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Testimonial } from "@shared/schema";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Testimonials() {
   const { data, isLoading } = useQuery<{ success: boolean; testimonials: Testimonial[] }>({
@@ -33,12 +34,22 @@ export default function Testimonials() {
                 <blockquote className="text-base leading-relaxed mb-6 italic">
                   "{testimonial.quote}"
                 </blockquote>
-                <div className="border-t border-border pt-4">
-                  <p className="font-semibold text-base">{testimonial.author}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.company}</p>
-                  <p className="text-xs text-muted-foreground mt-1 font-mono">
-                    Project: {testimonial.project}
-                  </p>
+                <div className="border-t border-border pt-4 flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    {testimonial.avatarUrl ? (
+                      <AvatarImage src={testimonial.avatarUrl} alt={testimonial.author} />
+                    ) : null}
+                    <AvatarFallback>
+                      <User className="h-6 w-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-base">{testimonial.author}</p>
+                    <p className="text-sm text-muted-foreground">{testimonial.company}</p>
+                    <p className="text-xs text-muted-foreground mt-1 font-mono">
+                      Project: {testimonial.project}
+                    </p>
+                  </div>
                 </div>
               </Card>
             ))}

@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +9,7 @@ import equipment1 from "@assets/generated_images/Laser_cutter_machine_equipment_
 import equipment2 from "@assets/generated_images/CNC_milling_machine_equipment_c5559442.png";
 import equipment3 from "@assets/generated_images/3D_printer_farm_equipment_fc60a112.png";
 
-const equipmentImages = [equipment1, equipment2, equipment3];
+const defaultEquipmentImages = [equipment1, equipment2, equipment3];
 
 export default function Equipment() {
   const { data, isLoading } = useQuery<{ success: boolean; equipment: EquipmentType[] }>({
@@ -18,6 +18,14 @@ export default function Equipment() {
 
   const capabilities = data?.equipment || [];
   const [currentImage, setCurrentImage] = useState(0);
+
+  const equipmentImages = useMemo(() => {
+    const imagesFromData = capabilities
+      .filter(cap => cap.imageUrl)
+      .map(cap => cap.imageUrl as string);
+    
+    return imagesFromData.length > 0 ? imagesFromData : defaultEquipmentImages;
+  }, [capabilities]);
 
   const nextImage = () => {
     setCurrentImage((prev) => (prev + 1) % equipmentImages.length);
