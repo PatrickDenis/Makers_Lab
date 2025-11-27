@@ -17,6 +17,7 @@ import {
   updateConstructionBannerSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 if (!process.env.ADMIN_PASSWORD) {
   throw new Error("ADMIN_PASSWORD environment variable is required");
@@ -151,6 +152,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
+
+  // Object Storage Routes for Image Uploads
+  app.post("/api/objects/upload", requireAdmin, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
 
   app.get("/api/services", async (req, res) => {
     try {
