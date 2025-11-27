@@ -1,5 +1,6 @@
 import { db } from "./db";
-import { services, projects, equipment, processSteps, testimonials } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { services, projects, equipment, processSteps, testimonials, seedLog } from "@shared/schema";
 
 const initialServices = [
   {
@@ -46,7 +47,7 @@ const initialProjects = [
     category: "Industrial",
     description: "CNC machined aluminum parts with tight tolerances for aerospace application.",
     tags: ["CNC", "Aluminum", "Aerospace"],
-    imageUrl: "/attached_assets/generated_images/CNC_machined_industrial_part_f29ddd5e.png",
+    imageUrl: "/seed-images/CNC_machined_industrial_part_f29ddd5e.png",
     order: "1"
   },
   {
@@ -54,7 +55,7 @@ const initialProjects = [
     category: "Art",
     description: "Custom laser-cut architectural metalwork for commercial interior design project.",
     tags: ["Laser Cutting", "Art", "Architecture"],
-    imageUrl: "/attached_assets/generated_images/Laser_cut_artistic_panel_cfaed520.png",
+    imageUrl: "/seed-images/Laser_cut_artistic_panel_cfaed520.png",
     order: "2"
   },
   {
@@ -62,7 +63,7 @@ const initialProjects = [
     category: "Prototype",
     description: "3D printed mechanical assembly for product development testing and validation.",
     tags: ["3D Printing", "Prototype", "Engineering"],
-    imageUrl: "/attached_assets/generated_images/3D_printed_prototype_assembly_34122b60.png",
+    imageUrl: "/seed-images/3D_printed_prototype_assembly_34122b60.png",
     order: "3"
   },
   {
@@ -70,7 +71,7 @@ const initialProjects = [
     category: "Industrial",
     description: "Heavy-duty welded steel frame for industrial machinery installation.",
     tags: ["Welding", "Steel", "Heavy Fabrication"],
-    imageUrl: "/attached_assets/generated_images/Welded_steel_frame_structure_0594cf3b.png",
+    imageUrl: "/seed-images/Welded_steel_frame_structure_0594cf3b.png",
     order: "4"
   },
   {
@@ -78,7 +79,7 @@ const initialProjects = [
     category: "Art",
     description: "Precision-machined brass and copper components for luxury furniture line.",
     tags: ["CNC", "Brass", "Luxury"],
-    imageUrl: "/attached_assets/generated_images/Custom_brass_hardware_components_ba9605f9.png",
+    imageUrl: "/seed-images/Custom_brass_hardware_components_ba9605f9.png",
     order: "5"
   }
 ];
@@ -150,9 +151,84 @@ const initialTestimonials = [
   }
 ];
 
+async function cleanupDuplicates() {
+  console.log("Cleaning up any duplicate entries...");
+  
+  // Clean duplicate services (keep first occurrence by title)
+  const allServices = await db.select().from(services);
+  const seenServiceTitles = new Set<string>();
+  for (const service of allServices) {
+    if (seenServiceTitles.has(service.title)) {
+      await db.delete(services).where(eq(services.id, service.id));
+    } else {
+      seenServiceTitles.add(service.title);
+    }
+  }
+  
+  // Clean duplicate projects (keep first occurrence by title)
+  const allProjects = await db.select().from(projects);
+  const seenProjectTitles = new Set<string>();
+  for (const project of allProjects) {
+    if (seenProjectTitles.has(project.title)) {
+      await db.delete(projects).where(eq(projects.id, project.id));
+    } else {
+      seenProjectTitles.add(project.title);
+    }
+  }
+  
+  // Clean duplicate equipment (keep first occurrence by label)
+  const allEquipment = await db.select().from(equipment);
+  const seenEquipmentLabels = new Set<string>();
+  for (const equip of allEquipment) {
+    if (seenEquipmentLabels.has(equip.label)) {
+      await db.delete(equipment).where(eq(equipment.id, equip.id));
+    } else {
+      seenEquipmentLabels.add(equip.label);
+    }
+  }
+  
+  // Clean duplicate process steps (keep first occurrence by title)
+  const allProcessSteps = await db.select().from(processSteps);
+  const seenStepTitles = new Set<string>();
+  for (const step of allProcessSteps) {
+    if (seenStepTitles.has(step.title)) {
+      await db.delete(processSteps).where(eq(processSteps.id, step.id));
+    } else {
+      seenStepTitles.add(step.title);
+    }
+  }
+  
+  // Clean duplicate testimonials (keep first occurrence by author)
+  const allTestimonials = await db.select().from(testimonials);
+  const seenTestimonialAuthors = new Set<string>();
+  for (const testimonial of allTestimonials) {
+    if (seenTestimonialAuthors.has(testimonial.author)) {
+      await db.delete(testimonials).where(eq(testimonials.id, testimonial.id));
+    } else {
+      seenTestimonialAuthors.add(testimonial.author);
+    }
+  }
+  
+  console.log("Duplicate cleanup complete!");
+}
+
 export async function seedDatabase() {
   try {
     console.log("Checking database for initial content...");
+    
+    // Always cleanup duplicates first
+    await cleanupDuplicates();
+    
+    // Check if already seeded using seed_log table
+    const existingSeedLog = await db.select().from(seedLog);
+    if (existingSeedLog.length > 0) {
+      console.log("Database already seeded, skipping...");
+      return;
+    }
+    
+    // Mark as seeded FIRST to prevent race conditions with multiple instances
+    await db.insert(seedLog).values({});
+    console.log("Starting initial seed...");
     
     const existingServices = await db.select().from(services);
     if (existingServices.length === 0) {
@@ -184,7 +260,7 @@ export async function seedDatabase() {
       console.log("Testimonials seeded!");
     }
     
-    console.log("Database ready!");
+    console.log("Database seeding complete!");
   } catch (error) {
     console.error("Error seeding database:", error);
   }

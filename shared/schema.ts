@@ -186,3 +186,8 @@ export const updateConstructionBannerSchema = insertConstructionBannerSchema.par
 export type InsertConstructionBanner = z.infer<typeof insertConstructionBannerSchema>;
 export type UpdateConstructionBanner = z.infer<typeof updateConstructionBannerSchema>;
 export type ConstructionBanner = typeof constructionBanner.$inferSelect;
+
+export const seedLog = pgTable("seed_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  seededAt: timestamp("seeded_at").defaultNow().notNull(),
+});
