@@ -81,9 +81,22 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Health check endpoint - must be registered early for deployment health checks
+  // Health check endpoints - respond immediately for deployment health checks
+  // Both / and /health should respond fast for Replit deployment
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok" });
+  });
+  
+  // Also make / respond quickly with 200 before static serving
+  // This works as a fallback if Replit health check is set to /
+  app.get("/", (_req, res, next) => {
+    // Check if this is a health check (no accept header for HTML)
+    const acceptHeader = _req.get("accept") || "";
+    if (!acceptHeader.includes("text/html") && !acceptHeader.includes("*/*")) {
+      return res.status(200).json({ status: "ok" });
+    }
+    // Otherwise, let it fall through to static serving
+    next();
   });
   
   // Register API routes FIRST (before the catch-all from setupVite/serveStatic)
