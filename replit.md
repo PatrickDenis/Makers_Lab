@@ -34,6 +34,15 @@ A modern, professional website for a precision fabrication shop showcasing servi
   - Object storage integration via Replit's built-in storage
 - ✅ Toast notifications for user feedback
 - ✅ Loading states during form submissions
+- ✅ **Email notifications for quote requests via Microsoft SMTP**
+  - Sends formatted HTML emails to info@makers-lab.net
+  - Includes all form data with proper HTML escaping for security
+  - Graceful fallback if SMTP not configured
+- ✅ **Contact section content management:**
+  - Editable section headings, descriptions, and CTA text
+  - Dynamic contact info cards (Location, Phone, Email, Hours)
+  - Full CRUD for contact cards with icon customization
+  - Real-time updates reflected on homepage
 
 ### API Endpoints
 
@@ -63,6 +72,14 @@ A modern, professional website for a precision fabrication shop showcasing servi
 **Image Upload (Admin Protected):**
 - `POST /api/objects/upload` - Get presigned upload URL (admin only)
 - `GET /objects/:objectPath` - Retrieve uploaded objects
+
+**Contact Section Content Management:**
+- `GET /api/contact-section` - Get contact section settings (public)
+- `PUT /api/contact-section` - Update contact section settings (admin only)
+- `GET /api/contact-cards` - Get all contact info cards (public)
+- `POST /api/contact-cards` - Create new contact card (admin only)
+- `PUT /api/contact-cards/:id` - Update contact card (admin only)
+- `DELETE /api/contact-cards/:id` - Delete contact card (admin only)
 
 ## Technology Stack
 
@@ -206,6 +223,32 @@ All data is stored in a PostgreSQL database with persistent storage. Sessions ar
 }
 ```
 
+**Contact Section (single row):**
+```typescript
+{
+  id: string (UUID);
+  heading: string;
+  description: string;
+  ctaText: string;
+  responseNote: string;
+  updatedAt: Date;
+}
+```
+
+**Contact Cards:**
+```typescript
+{
+  id: string (UUID);
+  cardType: string;
+  title: string;
+  content: string;
+  icon: string;
+  order: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
 ## Admin Dashboard
 
 The admin dashboard is accessible via the "Admin" link in the footer. Admin access is protected by password authentication.
@@ -216,6 +259,8 @@ The admin dashboard is accessible via the "Admin" link in the footer. Admin acce
 - ✅ Services management (add, edit, delete)
 - ✅ Portfolio, Equipment, Process Steps, and Testimonials management
 - ✅ Construction banner management (enable/disable, custom content)
+- ✅ Contact section content management (heading, description, CTA, response note)
+- ✅ Contact info cards management (Location, Phone, Email, Hours, custom cards)
 - ✅ Real-time updates to the homepage
 - ✅ Form validation with error handling
 - ✅ Loading states for all operations
@@ -240,6 +285,10 @@ The admin dashboard is accessible via the "Admin" link in the footer. Admin acce
 - `SESSION_SECRET` - Secret key for session encryption
 - `ADMIN_PASSWORD` - Password for admin dashboard access
 
+**Optional (for email notifications):**
+- `SMTP_USER` - SMTP email address (e.g., info@makers-lab.net)
+- `SMTP_PASS` - SMTP password (configured for Microsoft Office 365)
+
 **Automatically provided (database connection):**
 - `DATABASE_URL` - PostgreSQL connection string
 - `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
@@ -247,10 +296,9 @@ The admin dashboard is accessible via the "Admin" link in the footer. Admin acce
 ## Future Enhancements
 
 ### Immediate Next Steps
-1. Implement email notifications for new quote requests
-2. Add admin view for contact submissions and newsletter signups
-3. Add image upload for project specifications
-4. Extend admin dashboard to manage Portfolio, Equipment, and Testimonials
+1. Add image upload for project specifications
+2. Add bulk actions for admin dashboard (delete multiple items)
+3. Add search/filter functionality to admin dashboard lists
 
 ### Long-term Features
 - User authentication for client portal
