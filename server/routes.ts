@@ -17,7 +17,46 @@ import {
   updateConstructionBannerSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { randomUUID } from "crypto";
+
+const uploadDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `${randomUUID()}${ext}`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({
+  storage: fileStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
+let objectStorageClient: any = null;
+try {
+  const { Client } = require("@replit/object-storage");
+  objectStorageClient = new Client();
+} catch (e) {
+  console.log("Object storage client not available, using local uploads");
+}
 
 if (!process.env.ADMIN_PASSWORD) {
   throw new Error("ADMIN_PASSWORD environment variable is required");
@@ -153,29 +192,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Object Storage Routes for Image Uploads
-  app.post("/api/objects/upload", requireAdmin, async (req, res) => {
+  // Image Upload Routes
+  app.post("/api/upload", requireAdmin, upload.single('image'), async (req, res) => {
     try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ success: true, imageUrl });
     } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
-  app.get("/objects/:objectPath(*)", async (req, res) => {
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
-      }
-      return res.sendStatus(500);
+  // Serve uploaded files
+  app.use("/uploads", (req, res, next) => {
+    const filePath = path.join(uploadDir, req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).json({ error: "File not found" });
     }
   });
 

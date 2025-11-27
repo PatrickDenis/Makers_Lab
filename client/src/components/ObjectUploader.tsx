@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ImageUploaderProps {
   onUploadComplete: (imageUrl: string) => void;
@@ -53,36 +53,30 @@ export function ImageUploader({
     setError(null);
 
     try {
-      const response = await fetch("/api/objects/upload", {
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      const response = await fetch("/api/upload", {
         method: "POST",
         credentials: "include",
+        body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get upload URL");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload image");
       }
 
-      const { uploadURL } = await response.json();
-
-      const uploadResponse = await fetch(uploadURL, {
-        method: "PUT",
-        body: selectedFile,
-        headers: {
-          "Content-Type": selectedFile.type,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image");
-      }
-
-      const objectPath = new URL(uploadURL).pathname;
-      const normalizedPath = `/objects${objectPath.split("/uploads")[1] ? `/uploads${objectPath.split("/uploads")[1].split("?")[0]}` : objectPath.split("?")[0]}`;
+      const data = await response.json();
       
-      onUploadComplete(normalizedPath);
-      setIsOpen(false);
-      setSelectedFile(null);
-      setPreviewUrl(null);
+      if (data.success && data.imageUrl) {
+        onUploadComplete(data.imageUrl);
+        setIsOpen(false);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+      } else {
+        throw new Error("Upload failed - no image URL returned");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -114,6 +108,9 @@ export function ImageUploader({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload Image</DialogTitle>
+            <DialogDescription>
+              Select an image file to upload (JPG, PNG, GIF up to 10MB)
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
