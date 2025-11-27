@@ -25,6 +25,7 @@ import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
 import nodemailer from "nodemailer";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 function escapeHtml(text: string): string {
   const htmlEscapes: Record<string, string> = {
@@ -259,23 +260,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Image Upload Routes - uses local file storage
-  // Works on Replit preview and when hosting locally
+  // Image Upload Routes - uses object storage for production persistence
   app.post("/api/upload", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
       
-      const imageUrl = `/uploads/${req.file.filename}`;
-      res.json({ success: true, imageUrl });
+      const objectStorageService = new ObjectStorageService();
+      
+      // Get signed upload URL from object storage
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      
+      // Read the temp file
+      const fileBuffer = fs.readFileSync(req.file.path);
+      
+      // Upload to object storage
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: fileBuffer,
+        headers: {
+          'Content-Type': req.file.mimetype,
+        },
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload to object storage');
+      }
+      
+      // Clean up temp file
+      fs.unlinkSync(req.file.path);
+      
+      // Extract the object path from the signed URL
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      
+      res.json({ success: true, imageUrl: objectPath });
     } catch (error) {
       console.error("Error uploading file:", error);
+      // Clean up temp file on error
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       res.status(500).json({ error: "Failed to upload file" });
     }
   });
 
-  // Serve uploaded files from local storage
+  // Serve files from object storage
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Legacy: Serve uploaded files from local storage (for backward compatibility)
   app.use("/uploads", (req, res, next) => {
     const filePath = path.join(uploadDir, req.path);
     if (fs.existsSync(filePath)) {

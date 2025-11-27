@@ -67,6 +67,11 @@ export class ObjectStorageService {
           "tool and set PRIVATE_OBJECT_DIR env var."
       );
     }
+    // If PRIVATE_OBJECT_DIR doesn't include the bucket ID, prepend it
+    const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+    if (bucketId && !dir.includes(bucketId)) {
+      return `/${bucketId}${dir.startsWith('/') ? dir : '/' + dir}`;
+    }
     return dir;
   }
 
