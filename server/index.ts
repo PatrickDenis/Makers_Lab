@@ -81,8 +81,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Seed database with initial content if empty
-  await seedDatabase();
+  // Health check endpoint - must be registered early for deployment health checks
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
   
   const server = await registerRoutes(app);
 
@@ -114,5 +116,11 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Seed database AFTER server starts listening
+    // This ensures health checks pass during initialization
+    seedDatabase().catch(err => {
+      console.error("Error seeding database:", err);
+    });
   });
 })();
