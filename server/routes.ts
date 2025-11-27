@@ -50,13 +50,8 @@ const upload = multer({
   }
 });
 
-let objectStorageClient: any = null;
-try {
-  const { Client } = require("@replit/object-storage");
-  objectStorageClient = new Client();
-} catch (e) {
-  console.log("Object storage client not available, using local uploads");
-}
+// Use local file uploads - works both on Replit preview and local hosting
+console.log("Using local file uploads");
 
 if (!process.env.ADMIN_PASSWORD) {
   throw new Error("ADMIN_PASSWORD environment variable is required");
@@ -192,7 +187,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Image Upload Routes
+  // Image Upload Routes - uses local file storage
+  // Works on Replit preview and when hosting locally
   app.post("/api/upload", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
@@ -207,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve uploaded files
+  // Serve uploaded files from local storage
   app.use("/uploads", (req, res, next) => {
     const filePath = path.join(uploadDir, req.path);
     if (fs.existsSync(filePath)) {
