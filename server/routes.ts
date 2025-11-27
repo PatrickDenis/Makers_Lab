@@ -168,19 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
-  // Object Storage - get presigned upload URL
-  app.post("/api/objects/upload", requireAdmin, async (req, res) => {
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
-    } catch (error) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
-    }
-  });
-
-  // Legacy upload endpoint - now uses Object Storage presigned URL
+  // Image upload endpoint - uses Object Storage for persistence across deployments
   app.post("/api/upload", requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
@@ -188,7 +176,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      
+      // Get file extension from original filename
+      const originalName = req.file.originalname;
+      const ext = originalName.includes('.') ? originalName.substring(originalName.lastIndexOf('.')) : '';
+      
+      // Get presigned upload URL with extension
+      const uploadURL = await objectStorageService.getObjectEntityUploadURLWithExtension(ext);
       
       // Upload file to Object Storage using presigned URL
       const uploadResponse = await fetch(uploadURL, {
@@ -200,11 +194,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error("Upload to Object Storage failed:", uploadResponse.status, errorText);
         throw new Error(`Upload failed: ${uploadResponse.status}`);
       }
 
       // Extract the object path from the upload URL
       const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      console.log("Image uploaded successfully:", objectPath);
       
       res.json({ success: true, imageUrl: objectPath });
     } catch (error) {
@@ -214,11 +211,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Serve objects from Object Storage
-  app.get("/objects/:objectPath(*)", async (req, res) => {
+  app.get("/objects/*", async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
+      // req.path is the full path like /objects/uploads/uuid.jpg
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      objectStorageService.downloadObject(objectFile, res);
+      await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
