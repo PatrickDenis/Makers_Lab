@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Plus, Edit2, Trash2, LogOut, Upload, Image as ImageIcon } from "lucide-react";
-import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner } from "@shared/schema";
+import { Loader2, Plus, Edit2, Trash2, LogOut, Upload, Image as ImageIcon, Download, Mail } from "lucide-react";
+import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner, NewsletterSignup } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { ImageUploader } from "@/components/ObjectUploader";
 import {
@@ -115,6 +115,49 @@ export default function AdminDashboard() {
   const { data: bannerData, isLoading: isLoadingBanner } = useQuery<{ success: boolean; banner: ConstructionBanner | null }>({
     queryKey: ["/api/construction-banner"],
   });
+
+  const { data: newsletterData, isLoading: isLoadingNewsletter } = useQuery<{ success: boolean; signups: NewsletterSignup[] }>({
+    queryKey: ["/api/newsletter"],
+  });
+
+  const newsletterSignups = newsletterData?.signups || [];
+
+  const exportNewsletterToCSV = () => {
+    if (newsletterSignups.length === 0) {
+      toast({
+        title: "No subscribers",
+        description: "There are no newsletter subscribers to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ["Email", "Subscribed Date"];
+    const rows = newsletterSignups.map(signup => [
+      signup.email,
+      new Date(signup.createdAt).toLocaleDateString()
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `newsletter_subscribers_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export successful",
+      description: `Exported ${newsletterSignups.length} subscribers to CSV`,
+    });
+  };
 
   useEffect(() => {
     if (!isCheckingAuth && !authData?.isAuthenticated) {
@@ -591,13 +634,14 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-7 mb-8">
             <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
             <TabsTrigger value="projects" data-testid="tab-projects">Projects</TabsTrigger>
             <TabsTrigger value="equipment" data-testid="tab-equipment">Equipment</TabsTrigger>
             <TabsTrigger value="process" data-testid="tab-process">Process</TabsTrigger>
             <TabsTrigger value="testimonials" data-testid="tab-testimonials">Testimonials</TabsTrigger>
             <TabsTrigger value="banner" data-testid="tab-banner">Banner</TabsTrigger>
+            <TabsTrigger value="newsletter" data-testid="tab-newsletter">Newsletter</TabsTrigger>
           </TabsList>
 
           {/* Services Tab */}
@@ -1098,6 +1142,69 @@ export default function AdminDashboard() {
                       )}
                     </Button>
                   </form>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Newsletter Tab */}
+          <TabsContent value="newsletter">
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Newsletter Subscribers</h2>
+                  <p className="text-muted-foreground">
+                    View and export your newsletter subscriber list
+                  </p>
+                </div>
+                <Button 
+                  onClick={exportNewsletterToCSV}
+                  data-testid="button-export-newsletter"
+                  disabled={isLoadingNewsletter || newsletterSignups.length === 0}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to CSV
+                </Button>
+              </div>
+
+              {isLoadingNewsletter ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : newsletterSignups.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <Mail className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-2">No newsletter subscribers yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Subscribers will appear here when visitors sign up through the footer form
+                  </p>
+                </Card>
+              ) : (
+                <Card className="overflow-hidden">
+                  <div className="p-4 border-b bg-muted/50">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Total Subscribers: {newsletterSignups.length}</span>
+                    </div>
+                  </div>
+                  <div className="divide-y">
+                    {newsletterSignups.map((signup, index) => (
+                      <div 
+                        key={signup.id} 
+                        className="p-4 flex items-center justify-between"
+                        data-testid={`row-subscriber-${index}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-primary" />
+                          </div>
+                          <span className="font-medium" data-testid={`text-email-${index}`}>{signup.email}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground" data-testid={`text-date-${index}`}>
+                          Subscribed: {new Date(signup.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </Card>
               )}
             </div>
