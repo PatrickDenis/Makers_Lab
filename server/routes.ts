@@ -13,7 +13,8 @@ import {
   insertProcessStepSchema,
   updateProcessStepSchema,
   insertTestimonialSchema,
-  updateTestimonialSchema
+  updateTestimonialSchema,
+  updateConstructionBannerSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -373,6 +374,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting testimonial:", error);
       res.status(500).json({ success: false, message: "Failed to delete testimonial" });
+    }
+  });
+
+  // Construction Banner Routes (public GET, admin PUT)
+  app.get("/api/construction-banner", async (req, res) => {
+    try {
+      const banner = await storage.getConstructionBanner();
+      res.json({ success: true, banner: banner || null });
+    } catch (error) {
+      console.error("Error fetching construction banner:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch banner settings" });
+    }
+  });
+
+  app.put("/api/construction-banner", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = updateConstructionBannerSchema.parse(req.body);
+      const banner = await storage.upsertConstructionBanner(validatedData);
+      res.json({ success: true, banner });
+    } catch (error) {
+      console.error("Error updating construction banner:", error);
+      res.status(400).json({ success: false, message: "Failed to update banner settings" });
     }
   });
 
