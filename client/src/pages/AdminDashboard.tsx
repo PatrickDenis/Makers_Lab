@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Plus, Edit2, Trash2, LogOut, Upload, Image as ImageIcon, Download, Mail } from "lucide-react";
-import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner, NewsletterSignup } from "@shared/schema";
+import { Loader2, Plus, Edit2, Trash2, LogOut, Upload, Image as ImageIcon, Download, Mail, MessageSquare, User, Phone, DollarSign, Clock } from "lucide-react";
+import type { Service, Project, Equipment, ProcessStep, Testimonial, ConstructionBanner, NewsletterSignup, ContactSubmission } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { ImageUploader } from "@/components/ObjectUploader";
 import {
@@ -120,7 +120,12 @@ export default function AdminDashboard() {
     queryKey: ["/api/newsletter"],
   });
 
+  const { data: contactsData, isLoading: isLoadingContacts } = useQuery<{ success: boolean; submissions: ContactSubmission[] }>({
+    queryKey: ["/api/contact"],
+  });
+
   const newsletterSignups = newsletterData?.signups || [];
+  const contactSubmissions = contactsData?.submissions || [];
 
   const exportNewsletterToCSV = () => {
     if (newsletterSignups.length === 0) {
@@ -156,6 +161,48 @@ export default function AdminDashboard() {
     toast({
       title: "Export successful",
       description: `Exported ${newsletterSignups.length} subscribers to CSV`,
+    });
+  };
+
+  const exportContactsToCSV = () => {
+    if (contactSubmissions.length === 0) {
+      toast({
+        title: "No submissions",
+        description: "There are no contact submissions to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ["Name", "Email", "Phone", "Budget", "Timeline", "Description", "Date"];
+    const rows = contactSubmissions.map(submission => [
+      `"${submission.name.replace(/"/g, '""')}"`,
+      submission.email,
+      submission.phone || "",
+      submission.budget || "",
+      submission.timeline || "",
+      `"${submission.description.replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+      new Date(submission.createdAt).toLocaleDateString()
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contact_submissions_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export successful",
+      description: `Exported ${contactSubmissions.length} contact submissions to CSV`,
     });
   };
 
@@ -634,7 +681,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-8">
+          <TabsList className="grid w-full grid-cols-8 mb-8">
             <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
             <TabsTrigger value="projects" data-testid="tab-projects">Projects</TabsTrigger>
             <TabsTrigger value="equipment" data-testid="tab-equipment">Equipment</TabsTrigger>
@@ -642,6 +689,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="testimonials" data-testid="tab-testimonials">Testimonials</TabsTrigger>
             <TabsTrigger value="banner" data-testid="tab-banner">Banner</TabsTrigger>
             <TabsTrigger value="newsletter" data-testid="tab-newsletter">Newsletter</TabsTrigger>
+            <TabsTrigger value="contacts" data-testid="tab-contacts">Contacts</TabsTrigger>
           </TabsList>
 
           {/* Services Tab */}
@@ -1206,6 +1254,99 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Contacts Tab */}
+          <TabsContent value="contacts">
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Contact Submissions</h2>
+                  <p className="text-muted-foreground">
+                    View and export quote requests from the Get in Touch form
+                  </p>
+                </div>
+                <Button 
+                  onClick={exportContactsToCSV}
+                  data-testid="button-export-contacts"
+                  disabled={isLoadingContacts || contactSubmissions.length === 0}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to CSV
+                </Button>
+              </div>
+
+              {isLoadingContacts ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : contactSubmissions.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-2">No contact submissions yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Quote requests will appear here when visitors submit the contact form
+                  </p>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  <Card className="p-4 bg-muted/50">
+                    <span className="font-medium">Total Submissions: {contactSubmissions.length}</span>
+                  </Card>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    {contactSubmissions.map((submission, index) => (
+                      <Card key={submission.id} className="p-6" data-testid={`card-contact-${index}`}>
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="w-6 h-6 text-primary" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-lg" data-testid={`text-contact-name-${index}`}>{submission.name}</h3>
+                                <p className="text-sm text-muted-foreground" data-testid={`text-contact-email-${index}`}>{submission.email}</p>
+                              </div>
+                            </div>
+                            <span className="text-sm text-muted-foreground" data-testid={`text-contact-date-${index}`}>
+                              {new Date(submission.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {submission.phone && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Phone className="w-4 h-4 text-muted-foreground" />
+                                <span data-testid={`text-contact-phone-${index}`}>{submission.phone}</span>
+                              </div>
+                            )}
+                            {submission.budget && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                                <span data-testid={`text-contact-budget-${index}`}>{submission.budget}</span>
+                              </div>
+                            )}
+                            {submission.timeline && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <span data-testid={`text-contact-timeline-${index}`}>{submission.timeline}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="bg-muted/50 rounded-lg p-4">
+                            <p className="text-sm font-medium mb-2">Project Description:</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid={`text-contact-description-${index}`}>
+                              {submission.description}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </TabsContent>
